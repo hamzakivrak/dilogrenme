@@ -37,33 +37,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- 3. GEMINI API MOTORU ---
     async function callGemini(prompt) {
-        if (!API_KEY) {
-            alert("Lütfen önce Ayarlar sekmesinden API anahtarını kaydedin!");
-            return null;
-        }
+    if (!API_KEY) { alert("Lütfen Ayarlar'dan API Key girin!"); return; }
 
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
+    // v1beta ve gemini-1.5-flash-latest kombinasyonu en garanti yoldur
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${API_KEY}`;
+    
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+        });
+
+        if (!response.ok) {
+            const err = await response.json();
+            // Eğer hala v1 hatası veriyorsa burada konsola yazdırırız
+            console.error("Detaylı Hata:", err);
+            throw new Error(err.error ? err.error.message : "Bağlantı Hatası");
+        }
         
-        try {
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-            });
-
-            if (!response.ok) {
-                const err = await response.json();
-                throw new Error(err.error ? err.error.message : "Bağlantı Hatası");
-            }
-            
-            const data = await response.json();
-            return data.candidates[0].content.parts[0].text;
-        } catch (error) {
-            console.error("Gemini Hatası:", error);
-            alert("AI Hatası: " + error.message);
-            return null;
-        }
+        const data = await response.json();
+        return data.candidates[0].content.parts[0].text;
+    } catch (e) { 
+        console.error("Sistem Hatası:", e);
+        alert("AI Hatası: " + e.message); 
+        return null; 
     }
+}
 
     // --- 4. STÜDYO: HİKAYE ÜRETİMİ VE OTOMATİK AKTARIM ---
     const btnGenerate = document.getElementById('btn-generate-story');
