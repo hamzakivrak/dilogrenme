@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI Dil Asistanı Pro</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+    <main id="app-content">
+        <section id="tab-studio" class="tab-section active">
+            <h2><i class="fa-solid fa-pen-nib"></i> Stüdyo</h2>
+            <div class="ai-input-group">
+                <input type="text" id="story-prompt" placeholder="Örn: A1 seviyesinde bir orman hikayesi yaz...">
+                <button id="btn-generate-story" class="action-btn">Hikaye Oluştur</button>
+            </div>
+            <div id="generated-story-display" class="reading-text" style="display:none; margin-top:20px;"></div>
+        </section>
+
+        <section id="tab-lab" class="tab-section">
+            <h2><i class="fa-solid fa-microscope"></i> Laboratuvar</h2>
+            <div id="text-container" class="reading-text">Stüdyo'da bir hikaye oluşturun veya buraya metin yapıştırın.</div>
+
+            <div id="word-bubble">
+                <div class="bubble-content"><span id="bubble-translation">...</span></div>
+                <div class="bubble-actions">
+                    <button id="btn-speak"><i class="fa-solid fa-volume-high"></i></button>
+                    <button id="btn-save"><i class="fa-solid fa-star"></i></button>
+                    <button id="btn-grammar"><i class="fa-solid fa-magnifying-glass"></i></button>
+                </div>
+                <div class="bubble-arrow"></div>
+            </div>
+
+            <div id="ai-drawer" class="drawer hidden">
+                <div class="drawer-header">
+                    <span>Gramer Analizi</span>
+                    <button id="close-drawer"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div id="ai-response-content" class="drawer-content">Analiz yükleniyor...</div>
+            </div>
+        </section>
+
+        <section id="tab-vocab" class="tab-section">
+            <div class="top-sub-nav">
+                <button class="sub-nav-btn active" data-sub="sub-kelimeler">Kelimeler</button>
+                <button class="sub-nav-btn" data-sub="sub-gramer">Gramer</button>
+                <button class="sub-nav-btn" data-sub="sub-hafiza">Hafıza</button>
+            </div>
+            
+            <div class="sub-content-area">
+                <div id="sub-kelimeler" class="sub-section active">
+                    <div class="section-header">
+                        <h3><i class="fa-solid fa-layer-group"></i> Kelime Havuzu</h3>
+                        <div class="bulk-actions">
+                            <button id="btn-delete-selected" class="mini-btn hidden"><i class="fa-solid fa-check-double"></i></button>
+                            <button id="btn-clear-all" class="mini-btn"><i class="fa-solid fa-trash-can"></i></button>
+                        </div>
+                    </div>
+                    <div id="vault-list"></div>
+                </div>
+
+                <div id="sub-gramer" class="sub-section">
+                    <h3><i class="fa-solid fa-book"></i> Gramer Notları</h3>
+                    <p style="margin-top:15px; opacity:0.6;">Gemini'den kaydettiğin notlar burada yer alacak.</p>
+                </div>
+
+                <div id="sub-hafiza" class="sub-section">
+                    <h3><i class="fa-solid fa-brain"></i> Hafıza Kontrolü</h3>
+                    <p style="margin-top:15px; opacity:0.6;">Yapay zekanın neleri hatırlayacağını buradan yönet.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="tab-settings" class="tab-section">
+            <h2><i class="fa-solid fa-gear"></i> Ayarlar</h2>
+            <div class="settings-card">
+                <div class="setting-item">
+                    <div class="setting-info"><strong>Kullanıcı Girişi</strong><span>Verilerini senkronize et</span></div>
+                    <button class="action-btn mini"><i class="fa-brands fa-google"></i> Giriş</button>
+                </div>
+                <div class="setting-item api-box">
+                    <strong>Gemini API Anahtarı</strong>
+                    <input type="password" id="api-key-input" placeholder="AIzaSy...">
+                    <button id="btn-save-key" class="action-btn">Kaydet</button>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-info"><strong>Görünüm</strong><span>Koyu / Açık Tema</span></div>
+                    <button id="theme-toggle" class="action-btn mini">Değiştir</button>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-info"><strong>Çalışma Dili</strong><span>Öğrenmek istediğin dil</span></div>
+                    <select id="study-language" class="styled-select">
+                        <option value="de" selected>Almanca</option>
+                        <option value="en">İngilizce</option>
+                    </select>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-info"><strong>Okuma Boyutu</strong><span>Yazı büyüklüğünü ayarla</span></div>
+                    <input type="range" id="text-size" min="14" max="24" value="18">
+                </div>
+                <div class="setting-item">
+                    <div class="setting-info"><strong>Yapay Zeka Sesi</strong><span>Okuyucu tonunu seç</span></div>
+                    <select id="ai-voice" class="styled-select">
+                        <option value="female">Marlene (Kadın)</option>
+                        <option value="male">Hans (Erkek)</option>
+                    </select>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <nav class="bottom-nav">
+        <button class="nav-btn active" data-target="tab-studio"><i class="fa-solid fa-book-open"></i><span>Stüdyo</span></button>
+        <button class="nav-btn" data-target="tab-lab"><i class="fa-solid fa-flask"></i><span>Lab</span></button>
+        <button class="nav-btn" data-target="tab-vocab"><i class="fa-solid fa-star"></i><span>Havuz</span></button>
+        <button class="nav-btn" data-target="tab-settings"><i class="fa-solid fa-gear"></i><span>Ayarlar</span></button>
+    </nav>
+
+    <script src="app.js"></script>
+</body>
+</html>

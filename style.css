@@ -1,0 +1,65 @@
+:root {
+    --bg-color: #121212; --surface-color: #1e1e1e; --text-color: #e0e0e0;
+    --primary-color: #bb86fc; --nav-bg: #1f1f1f; --nav-active: #bb86fc;
+    --nav-inactive: #888888;
+}
+
+body.light-theme {
+    --bg-color: #f5f5f5; --surface-color: #ffffff; --text-color: #333333;
+    --primary-color: #6200ee; --nav-bg: #ffffff; --nav-active: #6200ee;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, sans-serif; }
+body { background: var(--bg-color); color: var(--text-color); padding-bottom: 80px; transition: 0.3s; }
+
+/* SEKMELER */
+.tab-section { display: none; padding: 20px; animation: fadeIn 0.3s ease; }
+.tab-section.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+/* NAVİGASYON */
+.bottom-nav { position: fixed; bottom: 0; width: 100%; height: 65px; background: var(--nav-bg); display: flex; justify-content: space-around; align-items: center; z-index: 1000; box-shadow: 0 -2px 10px rgba(0,0,0,0.3); }
+.nav-btn { background: none; border: none; color: var(--nav-inactive); display: flex; flex-direction: column; align-items: center; cursor: pointer; flex: 1; height: 100%; }
+.nav-btn.active { color: var(--nav-active); }
+.nav-btn i { font-size: 20px; margin-bottom: 4px; }
+.nav-btn span { font-size: 10px; }
+
+/* OKUMA ALANI */
+.reading-text { font-size: 18px; line-height: 2.2; padding: 20px; background: var(--surface-color); border-radius: 15px; user-select: text; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+.ai-input-group { display: flex; flex-direction: column; gap: 10px; margin-top: 15px; }
+.ai-input-group input { padding: 15px; border-radius: 12px; border: 1px solid #444; background: #1e1e1e; color: #fff; font-size: 16px; }
+
+/* BUBBLE */
+#word-bubble { position: absolute; background: #2c2c2c; color: #fff; padding: 12px; border-radius: 12px; display: none; flex-direction: column; transform: translate(-50%, -110%); z-index: 2000; min-width: 170px; box-shadow: 0 5px 20px rgba(0,0,0,0.5); }
+.bubble-actions { display: flex; justify-content: space-around; border-top: 1px solid #444; padding-top: 10px; margin-top: 10px; }
+.bubble-actions button { background: none; border: none; color: #e0e0e0; font-size: 20px; cursor: pointer; }
+.bubble-arrow { position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 8px solid #2c2c2c; }
+
+/* DRAWER */
+.drawer { position: fixed; bottom: 65px; left: 0; width: 100%; height: 50%; background: #1e1e1e; border-top: 3px solid var(--primary-color); z-index: 1500; transition: 0.3s; display: flex; flex-direction: column; }
+.drawer.hidden { display: none; transform: translateY(110%); }
+.drawer-header { padding: 15px; background: #2c2c2c; display: flex; justify-content: space-between; align-items: center; font-weight: bold; }
+.drawer-content { padding: 20px; flex: 1; overflow-y: auto; line-height: 1.6; white-space: pre-wrap; font-size: 15px; }
+
+/* HAVUZ */
+.top-sub-nav { display: flex; background: var(--surface-color); border-radius: 10px; margin-bottom: 20px; overflow: hidden; border: 1px solid rgba(128,128,128,0.2); }
+.sub-nav-btn { flex: 1; padding: 12px; background: none; border: none; color: var(--text-color); font-weight: bold; cursor: pointer; }
+.sub-nav-btn.active { background: var(--primary-color); color: #fff; }
+.sub-section { display: none; }
+.sub-section.active { display: block; }
+
+/* AYARLAR KARTI */
+.settings-card { background: var(--surface-color); border-radius: 15px; padding: 10px 20px; }
+.setting-item { display: flex; justify-content: space-between; align-items: center; padding: 18px 0; border-bottom: 1px solid rgba(128,128,128,0.1); }
+.setting-info { display: flex; flex-direction: column; gap: 4px; }
+.setting-info span { font-size: 11px; color: var(--nav-inactive); }
+.api-box { flex-direction: column !important; align-items: flex-start !important; gap: 10px; }
+.api-box input { width: 100%; padding: 10px; border-radius: 8px; background: #121212; border: 1px solid #444; color: #fff; }
+
+/* BUTONLAR VE INPUTLAR */
+.action-btn { background: var(--primary-color); color: #fff; border: none; padding: 12px; border-radius: 10px; font-weight: bold; cursor: pointer; }
+.action-btn.mini { padding: 8px 15px; font-size: 12px; }
+.mini-btn { background: #cf6679; color: #fff; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; margin-left: 5px; }
+.styled-select { padding: 8px; border-radius: 8px; background: var(--bg-color); color: var(--text-color); border: 1px solid #444; }
+.word-card { background: var(--surface-color); padding: 15px; border-radius: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; border-left: 5px solid var(--primary-color); }
+.hidden { display: none !important; }
