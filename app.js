@@ -22,23 +22,30 @@ document.addEventListener('DOMContentLoaded', () => {
     
     let vault = JSON.parse(localStorage.getItem('myVault')) || [];
     let storyVault = JSON.parse(localStorage.getItem('myStories')) || []; 
-    let notesVault = JSON.parse(localStorage.getItem('dil_notes')) || []; // YENİ NOTLAR KASASI
-    let sessionVault = [...vault]; 
-    let currentCardIndex = 0;
+    let notesVault = JSON.parse(localStorage.getItem('dil_notes')) || []; 
+    let sessionVault = []; 
     
+    // Eğitim Oturumu Mantığı Değişkenleri
+    let studyPhase = 'none'; // 'review' (Tinder Modu) veya 'quiz' (Sınav Modu)
+    let reviewQueue = []; // İnceleme sırası (indexler)
+    let learnedHistory = []; // Geri alabilmek için öğrenilenler (indexler)
+    let quizQueue = []; // Sınav sırası
+    let currentQuizIndex = 0;
+    let quizScore = 0;
+
     let aiCache = JSON.parse(localStorage.getItem('dil_ai_cache')) || {}; 
     let chatHistoryVault = JSON.parse(localStorage.getItem('dil_chat_history')) || {}; 
 
     let currentDrawerContext = ""; 
     let currentDrawerAction = ""; 
     let currentStoryAnalysisData = {}; 
-    let pendingNoteContent = ""; // Kaydedilmeyi bekleyen yapay zeka mesajı
+    let pendingNoteContent = ""; 
 
     if (document.getElementById('native-language')) document.getElementById('native-language').value = nativeLang;
     if (document.getElementById('study-language')) document.getElementById('study-language').value = studyLang;
 
     renderStoryList();
-    renderNotesList(); // Açılışta notları da çiz
+    renderNotesList();
 
     // --- NAVİGASYON ---
     const navBtns = document.querySelectorAll('.nav-btn');
@@ -52,7 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (target === 'tab-vocab') { 
             document.querySelector('[data-sub="sub-kelimeler"]').click(); 
-            renderVaultList(); renderFlashcard(); renderNotesList();
+            renderVaultList(); 
         }
     }));
 
@@ -65,7 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById(btn.getAttribute('data-sub')).classList.remove('hidden');
     }));
 
-    // --- AYARLAR VE GELİŞMİŞ HAFIZA SİLİCİ ---
+    // --- AYARLAR ---
     document.getElementById('btn-save-key').addEventListener('click', () => {
         const keysInput = document.getElementById('api-key-input').value.trim();
         if (keysInput) { 
@@ -89,20 +96,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const delVault = document.getElementById('chk-del-vault').checked;
         const delNotes = document.getElementById('chk-del-notes').checked;
 
-        if (!delCache && !delChat && !delStories && !delVault && !delNotes) {
-            alert("Lütfen silmek için listeden en az bir öğe seçin."); return;
-        }
+        if (!delCache && !delChat && !delStories && !delVault && !delNotes) { alert("Lütfen silmek için listeden en az bir öğe seçin."); return; }
 
         if(confirm("Seçtiğin veriler tamamen silinecek ve bu işlem GERİ ALINAMAZ. Emin misin?")) {
             if (delCache) { aiCache = {}; localStorage.setItem('dil_ai_cache', JSON.stringify(aiCache)); }
             if (delChat) { chatHistoryVault = {}; localStorage.setItem('dil_chat_history', JSON.stringify(chatHistoryVault)); }
             if (delStories) { storyVault = []; localStorage.setItem('myStories', JSON.stringify(storyVault)); renderStoryList(); }
-            if (delVault) { vault = []; sessionVault = []; localStorage.setItem('myVault', JSON.stringify(vault)); currentCardIndex = 0; renderVaultList(); renderFlashcard(); }
+            if (delVault) { vault = []; document.getElementById('flashcard-container').innerHTML = '<div class="empty-vault-msg">Havuz boş.</div>'; localStorage.setItem('myVault', JSON.stringify(vault)); renderVaultList(); }
             if (delNotes) { notesVault = []; localStorage.setItem('dil_notes', JSON.stringify(notesVault)); renderNotesList(); }
             
             alert("Seçilen veriler cihazınızdan başarıyla silindi!");
             document.getElementById('delete-modal').classList.add('hidden');
-            
             document.querySelectorAll('#delete-modal input[type="checkbox"]').forEach(chk => chk.checked = false);
         }
     });
@@ -120,7 +124,7 @@ document.addEventListener('DOMContentLoaded', () => {
         else chkSelectAll.checked = false;
     }
 
-    // --- TTS (SESLENDİRME) YARDIMCISI ---
+    // --- TTS (SESLENDİRME) ---
     window.playAudio = (text, languageName) => {
         if(!text) return;
         const ut = new SpeechSynthesisUtterance(text);
@@ -228,11 +232,8 @@ document.addEventListener('DOMContentLoaded', () => {
     window.sendToLab = (id) => {
         const story = storyVault.find(s => s.id === id);
         if(story) {
-            story.isWorked = true; 
-            localStorage.setItem('myStories', JSON.stringify(storyVault));
-            renderStoryList(); 
-            document.querySelector('[data-target="tab-lab"]').click();
-            prepareLabText(story.content);
+            story.isWorked = true; localStorage.setItem('myStories', JSON.stringify(storyVault)); renderStoryList(); 
+            document.querySelector('[data-target="tab-lab"]').click(); prepareLabText(story.content);
         }
     };
 
@@ -247,18 +248,14 @@ document.addEventListener('DOMContentLoaded', () => {
         labContainer.innerHTML = '';
         
         const topActionsDiv = document.createElement('div');
-        topActionsDiv.style.marginBottom = "25px";
-        topActionsDiv.style.textAlign = "center";
+        topActionsDiv.style.marginBottom = "25px"; topActionsDiv.style.textAlign = "center";
         
         const btnExtractAll = document.createElement('button');
-        btnExtractAll.className = 'action-btn';
-        btnExtractAll.style.width = "100%";
-        btnExtractAll.style.padding = "15px";
+        btnExtractAll.className = 'action-btn'; btnExtractAll.style.width = "100%"; btnExtractAll.style.padding = "15px";
         btnExtractAll.innerHTML = '<i class="fa-solid fa-list-check"></i> Tüm Hikayedeki Kelimeleri Ayıkla';
         btnExtractAll.addEventListener('click', () => openDrawer(text, 'extract-all'));
         
-        topActionsDiv.appendChild(btnExtractAll);
-        labContainer.appendChild(topActionsDiv);
+        topActionsDiv.appendChild(btnExtractAll); labContainer.appendChild(topActionsDiv);
 
         const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
 
@@ -300,17 +297,15 @@ document.addEventListener('DOMContentLoaded', () => {
         statusBadge.innerHTML = '<i class="fa-solid fa-spinner"></i> <span>Yapay Zeka Metni Analiz Ediyor... Lütfen bekleyiniz.</span>';
 
         const cacheKey = `full_analysis_${studyLang}_${fullText.substring(0,30)}`;
-        
         const prompt = `Şu ${studyLang} dilindeki metnin İÇİNDEKİ HER BİR CÜMLEYİ ayrı ayrı analiz et: "${fullText}". 
-        SADECE JSON formatında bir dizi (array) döndür. 
+        SADECE JSON formatında bir dizi döndür. 
         DİKKAT (HTML KULLAN): 'grammar' ve 'details' alanlarında metni <b>, <ul>, <li> ve <br> gibi HTML etiketleriyle MADDELER HALİNDE ve kalın yazılarla şık biçimde organize et. JSON bozulmaması için özelliklere style vb. yazarken SADECE TEK TIRNAK kullan.
         Format şu şekilde olmalı: 
         [
           {
-            "sentence": "Cümlenin orijinal tam hali",
-            "translation": "Cümlenin ${nativeLang} çevirisi",
-            "grammar": "ÖĞRETMEN GİBİ ÇOK DETAYLI ANALİZ (HTML formatlı, maddeli): Cümleyi yeni başlayan öğrenci için açıkla. Fiil varsa zamanını ve tüm zamirlere göre çekimini yaz. İsimlerin artikellerini (der/die/das) KESİNLİKLE belirt. Edat varsa durumunu açıkla.",
-            "words": [ {"word": "İsimse KESİNLİKLE ARTIKELİYLE (örn: der Tisch). Fiilse mastar hali.", "translation": "Türkçesi", "pos": "isim/fiil/edat vs.", "details": "ÇOK DETAYLI (HTML Formatlı, maddeli): İsimse çoğul hali ve Dat/Akk durumu. Fiilse tüm kişi zamirlerine göre çekimleri ve geçmiş zamanı. Edatsa case kuralı. Modal ise kullanımı.", "example": "Kelimenin geçtiği örnek cümle", "example_tr": "Örnek cümlenin Türkçe çevirisi"} ]
+            "sentence": "Orijinal cümle", "translation": "${nativeLang} çevirisi",
+            "grammar": "ÖĞRETMEN GİBİ ÇOK DETAYLI ANALİZ (HTML formatlı, maddeli).",
+            "words": [ {"word": "İsimse ARTIKELİYLE. Fiilse mastar.", "translation": "Türkçesi", "pos": "isim/fiil/edat vs.", "details": "ÇOK DETAYLI (HTML Formatlı, maddeli).", "example": "Kelimenin geçtiği örnek cümle", "example_tr": "Örnek cümlenin Türkçe çevirisi"} ]
           }
         ]`;
 
@@ -341,9 +336,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const extractionList = document.getElementById('extraction-list');
     
     window.addEventListener('popstate', (e) => {
-        if (!drawer.classList.contains('hidden')) {
-            drawer.classList.add('hidden'); 
-        } else {
+        if (!drawer.classList.contains('hidden')) { drawer.classList.add('hidden'); } 
+        else {
             document.querySelectorAll('.story-content-box').forEach(el => el.classList.add('hidden'));
             document.querySelectorAll('.note-content-box').forEach(el => el.classList.add('hidden'));
         }
@@ -365,53 +359,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (action === 'extract' || action === 'extract-all') {
             document.getElementById('drawer-action-name').innerText = action === 'extract-all' ? "Tüm Hikayedeki Kelimeler" : "Kelimeler Ayıklanıyor";
-            chatContainer.classList.add('hidden'); 
-            extractionContainer.classList.remove('hidden');
+            chatContainer.classList.add('hidden'); extractionContainer.classList.remove('hidden');
             
             document.getElementById('btn-save-extracted').classList.add('hidden'); 
             document.getElementById('extract-header-actions').classList.add('hidden');
-            
             const chkSelectAll = document.getElementById('chk-select-all');
             if (chkSelectAll) chkSelectAll.checked = false;
 
             if (action === 'extract-all') {
-                let allWords = [];
-                let wordSet = new Set();
-                
+                let allWords = []; let wordSet = new Set();
                 for (const [sent, data] of Object.entries(currentStoryAnalysisData)) {
                     if (data && data.words) {
                         data.words.forEach(w => {
                             let key = w.word.toLowerCase().trim();
                             if (!wordSet.has(key)) { 
-                                wordSet.add(key);
-                                let cloneW = {...w};
+                                wordSet.add(key); let cloneW = {...w};
                                 if (!cloneW.example) cloneW.example = sent;
                                 allWords.push(cloneW);
                             }
                         });
                     }
                 }
-
-                if (allWords.length > 0) {
-                    renderExtractionList(JSON.stringify(allWords), "Tüm Hikaye");
-                } else {
-                    extractionList.innerHTML = "<div style='padding:20px; text-align:center;'>Kelime bulunamadı veya analiz henüz tamamlanmadı. Lütfen sağ üstteki analizin bitmesini bekleyip tekrar deneyin.</div>";
-                }
+                if (allWords.length > 0) { renderExtractionList(JSON.stringify(allWords), "Tüm Hikaye"); } 
+                else { extractionList.innerHTML = "<div style='padding:20px; text-align:center;'>Kelime bulunamadı veya analiz henüz tamamlanmadı. Lütfen sağ üstteki analizin bitmesini bekleyip tekrar deneyin.</div>"; }
             }
-            else if (hasPreData && preData.words) {
-                renderExtractionList(JSON.stringify(preData.words), sentence);
-            } else {
+            else if (hasPreData && preData.words) { renderExtractionList(JSON.stringify(preData.words), sentence); } 
+            else {
                 extractionList.innerHTML = "<div style='padding:20px; text-align:center;'>Derin analiz yapılıyor, lütfen bekleyin...</div>";
                 const cacheKey = `extract_${studyLang}_${sentence.substring(0,30)}`;
-                const prompt = `Şu ${studyLang} cümlesindeki tüm kelimeleri yeni başlayan biri için DETAYLI analiz et: "${sentence}".
-                SADECE JSON dizisi döndür. 'details' alanında veriyi HTML etiketleriyle BİÇİMLENDİR.
-                Format: [{"word": "İsimse ARTIKELİYLE, Fiilse mastar", "translation": "Türkçesi", "pos": "isim/fiil vs.", "details": "HTML Biçimli", "example": "Örnek", "example_tr": "Çevirisi"}]`;
+                const prompt = `Şu ${studyLang} cümlesindeki tüm kelimeleri yeni başlayan biri için DETAYLI analiz et: "${sentence}". SADECE JSON dizisi döndür. 'details' alanında veriyi HTML etiketleriyle BİÇİMLENDİR. Format: [{"word": "İsimse ARTIKELİYLE, Fiilse mastar", "translation": "Türkçesi", "pos": "isim/fiil vs.", "details": "HTML Biçimli", "example": "Örnek", "example_tr": "Çevirisi"}]`;
                 const response = await callGemini(cacheKey, prompt, true);
                 renderExtractionList(response, sentence);
             }
         } else {
             extractionContainer.classList.add('hidden'); chatContainer.classList.remove('hidden'); chatContent.innerHTML = ''; 
-            
             let mainResponseAdded = false;
 
             if (action === 'translate') {
@@ -427,10 +408,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (action === 'translate') {
                     cacheKey = `trans_${studyLang}_${sentence.substring(0,30)}`; prompt = `Şu ${studyLang} cümlesini ${nativeLang} diline çevir: "${sentence}"`;
                 } else {
-                    cacheKey = `gram_${studyLang}_${sentence.substring(0,30)}`; prompt = `Şu cümlenin dilbilgisini yeni başlayan bir öğrenci için ÇOK DETAYLI Türkçe açıkla. Fiil varsa zamanını ve tüm zamirlere göre çekimini yaz. İsimlerin artikellerini belirt. Edat varsa durumunu açıkla. 
-                    CEVABI HTML FORMATINDA VER: <b>, <ul>, <li>, <br> kullanarak cevabını çok şık, maddeler halinde ve kolay okunabilir şekilde biçimlendir. Düz metin YAZMA: "${sentence}"`;
+                    cacheKey = `gram_${studyLang}_${sentence.substring(0,30)}`; prompt = `Şu cümlenin dilbilgisini yeni başlayan bir öğrenci için ÇOK DETAYLI Türkçe açıkla. Fiil varsa zamanını ve tüm zamirlere göre çekimini yaz. İsimlerin artikellerini belirt. Edat varsa durumunu açıkla. CEVABI HTML FORMATINDA VER: <b>, <ul>, <li>, <br> kullanarak cevabını çok şık, maddeler halinde ve kolay okunabilir şekilde biçimlendir. Düz metin YAZMA: "${sentence}"`;
                 }
-                
                 addChatMessage("Öğretmen analiz ediyor...", 'ai');
                 const response = await callGemini(cacheKey, prompt, false);
                 chatContent.innerHTML = ''; addChatMessage(response || "Hata oluştu.", 'ai');
@@ -504,7 +483,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if(addedCount > 0) {
             localStorage.setItem('myVault', JSON.stringify(vault)); sessionVault = [...vault]; 
-            renderVaultList(); renderFlashcard(); alert(`${addedCount} kelime eklendi!`);
+            renderVaultList(); alert(`${addedCount} kelime eklendi!`);
             document.getElementById('close-drawer').click(); 
         } else { alert("Seçtiğin kelimeler havuzda mevcut."); }
     });
@@ -530,69 +509,40 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- YAPAY ZEKA CEVAPLARINA NOTLARA EKLE BUTONU ENTEGRASYONU ---
     function addChatMessage(text, sender) {
         const msgContainer = document.createElement('div');
-        msgContainer.style.display = "flex";
-        msgContainer.style.flexDirection = "column";
-        msgContainer.style.maxWidth = "90%";
-        msgContainer.style.marginBottom = "20px";
-
-        if (sender === 'user') {
-            msgContainer.style.alignSelf = "flex-end";
-        } else {
-            msgContainer.style.alignSelf = "flex-start";
-        }
+        msgContainer.style.display = "flex"; msgContainer.style.flexDirection = "column"; msgContainer.style.maxWidth = "90%"; msgContainer.style.marginBottom = "20px";
+        if (sender === 'user') { msgContainer.style.alignSelf = "flex-end"; } else { msgContainer.style.alignSelf = "flex-start"; }
 
         const msgDiv = document.createElement('div');
-        msgDiv.className = `chat-msg chat-${sender}`;
-        msgDiv.style.marginBottom = "5px"; 
-        msgDiv.style.maxWidth = "100%";
-        msgDiv.innerHTML = text; 
+        msgDiv.className = `chat-msg chat-${sender}`; msgDiv.style.marginBottom = "5px"; msgDiv.style.maxWidth = "100%"; msgDiv.innerHTML = text; 
         msgContainer.appendChild(msgDiv);
 
-        // Eğer mesaj AI'dan geldiyse ve yükleme mesajı değilse, altına "Notlara Ekle" butonu koy
         if (sender === 'ai' && !text.includes("Analiz ediliyor") && !text.includes("Öğretmen analiz ediyor") && text !== "...") {
             const btnSaveNote = document.createElement('button');
-            btnSaveNote.className = "btn-action-sm";
-            btnSaveNote.style.alignSelf = "flex-start";
-            btnSaveNote.style.marginLeft = "10px";
-            btnSaveNote.style.color = "var(--secondary-color)";
+            btnSaveNote.className = "btn-action-sm"; btnSaveNote.style.alignSelf = "flex-start"; btnSaveNote.style.marginLeft = "10px"; btnSaveNote.style.color = "var(--secondary-color)";
             btnSaveNote.innerHTML = '<i class="fa-regular fa-bookmark"></i> Notlara Ekle';
             btnSaveNote.onclick = () => window.openNoteModal(text);
             msgContainer.appendChild(btnSaveNote);
         }
 
-        chatContent.appendChild(msgContainer); 
-        chatContent.scrollTop = chatContent.scrollHeight;
+        chatContent.appendChild(msgContainer); chatContent.scrollTop = chatContent.scrollHeight;
     }
 
-    // --- YENİ NOTLAR MODÜLÜ İŞLEVLERİ ---
+    // --- YENİ NOTLAR MODÜLÜ ---
     window.openNoteModal = (content) => {
-        pendingNoteContent = content;
-        document.getElementById('note-title-input').value = "";
-        document.getElementById('note-title-modal').classList.remove('hidden');
+        pendingNoteContent = content; document.getElementById('note-title-input').value = ""; document.getElementById('note-title-modal').classList.remove('hidden');
     };
 
-    document.getElementById('btn-cancel-note').addEventListener('click', () => {
-        document.getElementById('note-title-modal').classList.add('hidden');
-    });
+    document.getElementById('btn-cancel-note').addEventListener('click', () => { document.getElementById('note-title-modal').classList.add('hidden'); });
 
     document.getElementById('btn-save-note-confirm').addEventListener('click', () => {
         const title = document.getElementById('note-title-input').value.trim();
         if (!title) { alert("Lütfen notun için bir başlık belirle."); return; }
         
-        notesVault.unshift({ 
-            id: Date.now(), 
-            title: title, 
-            content: pendingNoteContent,
-            lang: studyLang
-        });
-        
-        localStorage.setItem('dil_notes', JSON.stringify(notesVault));
-        renderNotesList();
-        document.getElementById('note-title-modal').classList.add('hidden');
-        alert("Not başarıyla havuza kaydedildi!");
+        notesVault.unshift({ id: Date.now(), title: title, content: pendingNoteContent, lang: studyLang });
+        localStorage.setItem('dil_notes', JSON.stringify(notesVault)); renderNotesList();
+        document.getElementById('note-title-modal').classList.add('hidden'); alert("Not başarıyla havuza kaydedildi!");
     });
 
     function renderNotesList() {
@@ -601,18 +551,13 @@ document.addEventListener('DOMContentLoaded', () => {
         
         container.innerHTML = '';
         notesVault.forEach(note => {
-            const div = document.createElement('div');
-            div.className = 'story-item'; // Hikayelerle aynı şık temayı kullanıyoruz
+            const div = document.createElement('div'); div.className = 'story-item'; 
             div.innerHTML = `
                 <div class="story-header" onclick="toggleNote(${note.id})">
                     <div class="story-item-title" style="color: var(--secondary-color);"><i class="fa-solid fa-bookmark"></i> ${note.title} <small style="color:#888; margin-left:5px;">(${note.lang})</small></div>
-                    <div>
-                        <button class="mini-btn" style="background:transparent; color:#cf6679;" onclick="event.stopPropagation(); deleteNote(${note.id})"><i class="fa-solid fa-trash"></i></button>
-                    </div>
+                    <div><button class="mini-btn" style="background:transparent; color:#cf6679;" onclick="event.stopPropagation(); deleteNote(${note.id})"><i class="fa-solid fa-trash"></i></button></div>
                 </div>
-                <div class="story-content-box note-content-box hidden" id="note-content-${note.id}">
-                    ${note.content}
-                </div>
+                <div class="story-content-box note-content-box hidden" id="note-content-${note.id}">${note.content}</div>
             `;
             container.appendChild(div);
         });
@@ -622,56 +567,67 @@ document.addEventListener('DOMContentLoaded', () => {
         const contentBox = document.getElementById(`note-content-${id}`);
         if (contentBox.classList.contains('hidden')) {
             document.querySelectorAll('.note-content-box').forEach(el => el.classList.add('hidden')); 
-            contentBox.classList.remove('hidden');
-            history.pushState({ noteOpen: id }, ""); 
-        } else {
-            contentBox.classList.add('hidden');
-        }
+            contentBox.classList.remove('hidden'); history.pushState({ noteOpen: id }, ""); 
+        } else { contentBox.classList.add('hidden'); }
     };
 
     window.deleteNote = (id) => {
-        if(confirm("Bu notu silmek istediğine emin misin?")) {
-            notesVault = notesVault.filter(n => n.id !== id);
-            localStorage.setItem('dil_notes', JSON.stringify(notesVault));
-            renderNotesList();
-        }
+        if(confirm("Bu notu silmek istediğine emin misin?")) { notesVault = notesVault.filter(n => n.id !== id); localStorage.setItem('dil_notes', JSON.stringify(notesVault)); renderNotesList(); }
     };
 
     document.getElementById('btn-clear-all-notes').addEventListener('click', () => {
-        if(confirm("Tüm notları silmek istediğine emin misin?")) {
-            notesVault = []; localStorage.setItem('dil_notes', JSON.stringify(notesVault));
-            renderNotesList();
-        }
+        if(confirm("Tüm notları silmek istediğine emin misin?")) { notesVault = []; localStorage.setItem('dil_notes', JSON.stringify(notesVault)); renderNotesList(); }
     });
 
-    // --- FLASHCARD & LİSTE (YENİ 3 SEKMELİ SWIPE) ---
+    // --- 🎯 EFSANE OYUNLAŞTIRILMIŞ EĞİTİM MODÜLÜ (TİNDER + SINAV) ---
     document.getElementById('btn-random-session').addEventListener('click', () => {
         if (vault.length === 0) { alert("Havuz boş!"); return; }
+        // Rastgele 20 Kelimeyi Seç
         let shuffled = [...vault].sort(() => 0.5 - Math.random());
         sessionVault = shuffled.slice(0, 20);
-        currentCardIndex = 0; renderFlashcard(); alert(`Rastgele oturum başladı!`);
+        
+        // Aşama 1: Tinder İnceleme Modunu Başlat
+        studyPhase = 'review';
+        reviewQueue = sessionVault.map((_, index) => index); // 0'dan 19'a kadar index dizisi
+        learnedHistory = []; // Geri alabilmek için
+        
+        document.getElementById('tinder-controls').classList.remove('hidden');
+        document.getElementById('quiz-controls').classList.add('hidden');
+        document.getElementById('flashcard-controls').classList.add('hidden');
+        
+        renderReviewCard();
     });
 
-    function renderFlashcard() {
+    // Aşama 1 (Tinder) Render Fonksiyonu
+    function renderReviewCard() {
         const container = document.getElementById('flashcard-container');
-        const controls = document.getElementById('flashcard-controls');
         
-        if (sessionVault.length === 0) {
-            container.innerHTML = '<div class="empty-vault-msg">Havuz boş.</div>'; controls.classList.add('hidden'); return;
+        // Eğer sırada kelime kalmadıysa Aşama 2'ye (Sınava) geç!
+        if (reviewQueue.length === 0) {
+            startQuizPhase();
+            return;
         }
 
-        controls.classList.remove('hidden');
-        document.getElementById('card-counter').innerText = `${currentCardIndex + 1} / ${sessionVault.length}`;
+        const currentCardIndex = reviewQueue[0];
         const cardData = sessionVault[currentCardIndex];
+
+        // Geri al butonunu sadece geçmişte bir şey varsa aktif et
+        document.getElementById('btn-undo-card').disabled = learnedHistory.length === 0;
+        if(learnedHistory.length === 0) { document.getElementById('btn-undo-card').style.opacity = '0.3'; }
+        else { document.getElementById('btn-undo-card').style.opacity = '1'; }
+
+        // Kalan kelime sayısını göster
+        let remaining = reviewQueue.length;
 
         container.innerHTML = `
             <div class="flashcard" onclick="this.classList.toggle('flipped')">
                 <div class="card-face card-front">
+                    <div style="position:absolute; top:15px; left:15px; font-size:12px; color:var(--nav-inactive); font-weight:bold;">Kalan: ${remaining}</div>
                     <button class="tts-icon" onclick="event.stopPropagation(); playAudio('${cardData.frontWord}', '${cardData.lang}')"><i class="fa-solid fa-volume-high"></i></button>
                     <div class="fc-word">${cardData.frontWord || "Hata"}</div>
                     <div class="fc-type">${cardData.pos || "Kelime Türü Belirsiz"}</div>
                     <div class="fc-example">"${cardData.example || ""}"</div>
-                    <div class="fc-hint">Çeviri ve Detaylar İçin Dokun <i class="fa-solid fa-rotate"></i> <span>(Sağa sola kaydır)</span></div>
+                    <div class="fc-hint">Çeviri İçin Dokun <i class="fa-solid fa-rotate"></i> <span>(Sağa/Sola Kaydır)</span></div>
                 </div>
                 <div class="card-face card-back">
                     <div class="fc-word">${cardData.backTranslation || ""}</div>
@@ -682,35 +638,191 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
     }
 
-    document.getElementById('btn-prev-card').addEventListener('click', () => { if (currentCardIndex > 0) { currentCardIndex--; renderFlashcard(); } });
-    document.getElementById('btn-next-card').addEventListener('click', () => { if (currentCardIndex < sessionVault.length - 1) { currentCardIndex++; renderFlashcard(); } });
+    // Tinder Buton Aksiyonları
+    document.getElementById('btn-know-card').addEventListener('click', () => {
+        if(studyPhase !== 'review' || reviewQueue.length === 0) return;
+        // Biliyorum: Sıradan çıkar, geçmişe at
+        learnedHistory.push(reviewQueue.shift());
+        renderReviewCard();
+    });
 
+    document.getElementById('btn-again-card').addEventListener('click', () => {
+        if(studyPhase !== 'review' || reviewQueue.length === 0) return;
+        // Tekrar Sor: Sıradan çıkar, en arkaya at
+        reviewQueue.push(reviewQueue.shift());
+        renderReviewCard();
+    });
+
+    document.getElementById('btn-undo-card').addEventListener('click', () => {
+        if(studyPhase !== 'review' || learnedHistory.length === 0) return;
+        // Geri Al: Geçmişten al, sıranın en önüne koy
+        reviewQueue.unshift(learnedHistory.pop());
+        renderReviewCard();
+    });
+
+    // Aşama 2: Yazılı Sınav (Aktif Hatırlama)
+    function startQuizPhase() {
+        studyPhase = 'quiz';
+        document.getElementById('tinder-controls').classList.add('hidden');
+        document.getElementById('quiz-controls').classList.remove('hidden');
+        
+        // Soruları karıştır
+        quizQueue = [...sessionVault].sort(() => 0.5 - Math.random());
+        currentQuizIndex = 0;
+        quizScore = 0;
+        
+        renderQuizCard();
+    }
+
+    function renderQuizCard() {
+        const container = document.getElementById('flashcard-container');
+        
+        // Eğer sınav bittiyse sonuç ekranını göster
+        if (currentQuizIndex >= quizQueue.length) {
+            showQuizResult();
+            return;
+        }
+
+        const cardData = quizQueue[currentQuizIndex];
+        
+        // Kartın sadece arka yüzü gibi bir "soru" ekranı çiz (Tıklanınca dönmeyen statik kart)
+        container.innerHTML = `
+            <div class="flashcard" style="cursor:default;" id="active-quiz-card">
+                <div class="card-face card-front" style="justify-content: flex-start; padding-top:40px;">
+                    <div style="font-size:12px; color:var(--secondary-color); font-weight:bold; letter-spacing:1px; text-transform:uppercase; margin-bottom: 20px;">Soru ${currentQuizIndex + 1} / ${quizQueue.length}</div>
+                    <div style="font-size:50px; margin-bottom:10px; opacity:0.2;"><i class="fa-solid fa-pen-to-square"></i></div>
+                    <div style="font-size:16px; color:var(--text-color); margin-bottom: 10px;">Aşağıdaki alanları kullanarak bu kelimenin orijinal dilindeki karşılığını yazın.</div>
+                </div>
+                <div class="card-face card-back" style="transform: rotateY(180deg); justify-content:center;">
+                    <div style="color:#cf6679; font-size:14px; font-weight:bold; margin-bottom:10px; text-transform:uppercase;">Yanlış Cevap! Doğrusu:</div>
+                    <div class="fc-word" style="color:#cf6679;">${cardData.frontWord}</div>
+                    <div class="fc-details" style="margin-top:15px;">${cardData.regularity || ""}</div>
+                </div>
+            </div>
+        `;
+
+        // Soru ve ipucu metinlerini güncelle
+        document.getElementById('quiz-question-text').innerText = `Türkçesi: ${cardData.backTranslation}`;
+        document.getElementById('quiz-hint-text').innerText = cardData.backExample && cardData.backExample !== "-" ? `Örnek: "${cardData.backExample}"` : "";
+        
+        // Inputu temizle ve odaklan
+        const inputEl = document.getElementById('quiz-input');
+        inputEl.value = "";
+        inputEl.className = ""; // Sınıfları sıfırla
+        inputEl.style.flex = "1"; inputEl.style.padding = "12px"; inputEl.style.borderRadius = "10px"; inputEl.style.border = "1px solid rgba(128,128,128,0.4)"; inputEl.style.background = "rgba(0,0,0,0.2)"; inputEl.style.color = "var(--text-color)"; inputEl.style.outline = "none"; inputEl.style.textAlign = "center"; inputEl.style.fontSize = "16px";
+        
+        document.getElementById('quiz-feedback').innerText = "";
+        document.getElementById('btn-quiz-check').disabled = false;
+        
+        // Mobilde klavye otomatik açılması bazen rahatsız edici olabilir, o yüzden sadece focus atıyoruz, tıklarsa açılır
+        setTimeout(() => inputEl.focus(), 100);
+    }
+
+    // Cevap Kontrolü
+    document.getElementById('btn-quiz-check').addEventListener('click', checkQuizAnswer);
+    document.getElementById('quiz-input').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') checkQuizAnswer();
+    });
+
+    function checkQuizAnswer() {
+        if (studyPhase !== 'quiz') return;
+        const inputEl = document.getElementById('quiz-input');
+        const feedbackEl = document.getElementById('quiz-feedback');
+        const btnCheck = document.getElementById('btn-quiz-check');
+        const activeCard = document.getElementById('active-quiz-card');
+        
+        let userAnswer = inputEl.value.trim().toLowerCase();
+        let correctAnswer = quizQueue[currentQuizIndex].frontWord.trim().toLowerCase();
+
+        // Noktalama ve fazla boşlukları temizle
+        userAnswer = userAnswer.replace(/\s+/g, ' ');
+        correctAnswer = correctAnswer.replace(/\s+/g, ' ');
+
+        if (!userAnswer) return;
+
+        btnCheck.disabled = true; // Ard arda basmayı engelle
+
+        if (userAnswer === correctAnswer) {
+            quizScore++;
+            inputEl.classList.add('quiz-input-correct');
+            feedbackEl.style.color = "var(--secondary-color)";
+            feedbackEl.innerText = "Doğru! Harikasın ✅";
+            playAudio(quizQueue[currentQuizIndex].frontWord, studyLang); // Doğruysa okusun
+            
+            setTimeout(() => {
+                currentQuizIndex++;
+                renderQuizCard();
+            }, 1200);
+
+        } else {
+            inputEl.classList.add('quiz-input-wrong');
+            feedbackEl.style.color = "#cf6679";
+            feedbackEl.innerText = "Hatalı!";
+            
+            // Kartı ters çevirerek doğru cevabı ve detayları göster
+            if (activeCard) activeCard.classList.add('flipped');
+
+            setTimeout(() => {
+                currentQuizIndex++;
+                renderQuizCard();
+            }, 3000); // Yanlış cevabı incelemesi için 3 saniye süre ver
+        }
+    }
+
+    // Aşama 3: Skor Ekranı
+    function showQuizResult() {
+        studyPhase = 'none';
+        document.getElementById('quiz-controls').classList.add('hidden');
+        
+        const container = document.getElementById('flashcard-container');
+        let successRate = Math.round((quizScore / quizQueue.length) * 100);
+        let message = "";
+        let color = "";
+
+        if (successRate >= 90) { message = "Muhteşem!"; color = "var(--secondary-color)"; }
+        else if (successRate >= 60) { message = "İyi iş çıkardın, biraz daha tekrar!"; color = "var(--primary-color)"; }
+        else { message = "Pes etmek yok, tekrar dene!"; color = "#cf6679"; }
+
+        container.innerHTML = `
+            <div class="flashcard" style="cursor:default;">
+                <div class="card-face card-front" style="justify-content: center;">
+                    <div style="font-size:60px; color:${color}; margin-bottom:20px;"><i class="fa-solid fa-trophy"></i></div>
+                    <div style="font-size:24px; font-weight:bold; color:${color}; margin-bottom:10px;">${message}</div>
+                    <div style="font-size:16px; color:var(--text-color); margin-bottom:30px;">20 kelimenin <b>${quizScore}</b> tanesini doğru yazdın.</div>
+                    <div style="font-size:30px; font-weight:bold; border:2px solid ${color}; color:${color}; padding:10px 30px; border-radius:20px; background:rgba(0,0,0,0.2);">%${successRate}</div>
+                </div>
+            </div>
+        `;
+    }
+
+    // HAVUZ GENEL SWIPE (Kaydırma) KONTROLLERİ (Güncellendi)
     let touchstartX = 0; let touchendX = 0;
     const vocabTab = document.getElementById('tab-vocab');
-    vocabTab.addEventListener('touchstart', e => { touchstartX = e.changedTouches[0].screenX; }, {passive: true});
     
+    vocabTab.addEventListener('touchstart', e => { touchstartX = e.changedTouches[0].screenX; }, {passive: true});
     vocabTab.addEventListener('touchend', e => {
         touchendX = e.changedTouches[0].screenX;
         let isInsideCard = e.target.closest('.flashcard-container'); 
         const currentSubTab = document.querySelector('.sub-nav-btn.active').getAttribute('data-sub');
         
+        // Eğer İnceleme (Tinder) aşamasındaysak kaydırma işlemleri butonları tetikler
+        if (studyPhase === 'review' && isInsideCard) {
+            if (touchendX < touchstartX - 50) document.getElementById('btn-again-card').click(); // Sola kaydır (Tekrar Sor)
+            if (touchendX > touchstartX + 50) document.getElementById('btn-know-card').click();  // Sağa kaydır (Öğrendim)
+            return;
+        }
+
+        // Eğer Sınav (Quiz) aşamasındaysak kaydırmayı tamamen iptal et (yanlışlıkla geçmesin)
+        if (studyPhase === 'quiz' && isInsideCard) return;
+
+        // Normal sekmeler arası (Kartlar <-> Liste <-> Notlar) kaydırma
         if (touchendX < touchstartX - 60) {
-            // Sola Kaydır
-            if (isInsideCard) {
-                document.getElementById('btn-next-card').click();
-            } else {
-                if (currentSubTab === 'sub-kelimeler') document.querySelector('[data-sub="sub-liste"]').click(); 
-                else if (currentSubTab === 'sub-liste') document.querySelector('[data-sub="sub-notlar"]').click(); 
-            }
+            if (currentSubTab === 'sub-kelimeler') document.querySelector('[data-sub="sub-liste"]').click(); 
+            else if (currentSubTab === 'sub-liste') document.querySelector('[data-sub="sub-notlar"]').click(); 
         }
         if (touchendX > touchstartX + 60) {
-            // Sağa Kaydır
-            if (isInsideCard) {
-                document.getElementById('btn-prev-card').click();
-            } else {
-                if (currentSubTab === 'sub-notlar') document.querySelector('[data-sub="sub-liste"]').click(); 
-                else if (currentSubTab === 'sub-liste') document.querySelector('[data-sub="sub-kelimeler"]').click(); 
-            }
+            if (currentSubTab === 'sub-notlar') document.querySelector('[data-sub="sub-liste"]').click(); 
+            else if (currentSubTab === 'sub-liste') document.querySelector('[data-sub="sub-kelimeler"]').click(); 
         }
     }, {passive: true});
 
@@ -729,35 +841,24 @@ document.addEventListener('DOMContentLoaded', () => {
         vault = vault.filter(v => v.id !== id); sessionVault = sessionVault.filter(v => v.id !== id);
         localStorage.setItem('myVault', JSON.stringify(vault));
         if(currentCardIndex >= sessionVault.length) currentCardIndex = Math.max(0, sessionVault.length - 1);
-        renderVaultList(); renderFlashcard();
+        renderVaultList(); 
     };
     
     document.getElementById('btn-clear-all').addEventListener('click', () => {
         if(confirm("Tümünü silmek istediğine emin misin?")) {
             vault = []; sessionVault = []; localStorage.setItem('myVault', JSON.stringify(vault));
-            currentCardIndex = 0; renderVaultList(); renderFlashcard();
+            currentCardIndex = 0; renderVaultList(); 
+            document.getElementById('flashcard-container').innerHTML = '<div class="empty-vault-msg">Havuz boş.</div>';
         }
     });
 
     document.getElementById('btn-export-vault').addEventListener('click', () => {
         const fullBackup = {
-            vault: vault,
-            storyVault: storyVault,
-            aiCache: aiCache,
-            chatHistoryVault: chatHistoryVault,
-            notesVault: notesVault, // YENİ EKLENDİ
-            settings: {
-                apiKeys: localStorage.getItem('gemini_api_keys') || "",
-                nativeLang: nativeLang,
-                studyLang: studyLang,
-                theme: localStorage.getItem('dil_theme_class') || ""
-            }
+            vault: vault, storyVault: storyVault, aiCache: aiCache, chatHistoryVault: chatHistoryVault, notesVault: notesVault,
+            settings: { apiKeys: localStorage.getItem('gemini_api_keys') || "", nativeLang: nativeLang, studyLang: studyLang, theme: localStorage.getItem('dil_theme_class') || "" }
         };
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(fullBackup));
-        const dlAnchorElem = document.createElement('a'); 
-        dlAnchorElem.setAttribute("href", dataStr); 
-        dlAnchorElem.setAttribute("download", "dil_ai_tam_yedek.json"); 
-        dlAnchorElem.click();
+        const dlAnchorElem = document.createElement('a'); dlAnchorElem.setAttribute("href", dataStr); dlAnchorElem.setAttribute("download", "dil_ai_tam_yedek.json"); dlAnchorElem.click();
     });
 
     document.getElementById('import-vault').addEventListener('change', (event) => {
@@ -766,31 +867,25 @@ document.addEventListener('DOMContentLoaded', () => {
         reader.onload = (e) => {
             try {
                 const importedData = JSON.parse(e.target.result);
-                
                 if (Array.isArray(importedData)) {
                     vault = importedData; sessionVault = [...vault]; localStorage.setItem('myVault', JSON.stringify(vault));
-                    currentCardIndex = 0; alert("Eski tip kelime yedeği yüklendi!"); renderVaultList(); renderFlashcard();
+                    currentCardIndex = 0; alert("Eski tip kelime yedeği yüklendi!"); renderVaultList(); 
                 } else if (importedData.vault !== undefined) {
                     if(confirm("Bu işlem mevcut tüm hikaye, kelime, not ve sohbetlerini silecek ve yedekteki verileri yükleyecek. Emin misin?")) {
                         localStorage.setItem('myVault', JSON.stringify(importedData.vault || []));
                         localStorage.setItem('myStories', JSON.stringify(importedData.storyVault || []));
                         localStorage.setItem('dil_ai_cache', JSON.stringify(importedData.aiCache || {}));
                         localStorage.setItem('dil_chat_history', JSON.stringify(importedData.chatHistoryVault || {}));
-                        localStorage.setItem('dil_notes', JSON.stringify(importedData.notesVault || [])); // YENİ EKLENDİ
-                        
+                        localStorage.setItem('dil_notes', JSON.stringify(importedData.notesVault || []));
                         if (importedData.settings) {
                             localStorage.setItem('gemini_api_keys', importedData.settings.apiKeys || "");
                             localStorage.setItem('nativeLang', importedData.settings.nativeLang || "Türkçe");
                             localStorage.setItem('studyLang', importedData.settings.studyLang || "Almanca");
                             localStorage.setItem('dil_theme_class', importedData.settings.theme || "");
                         }
-                        
-                        alert("Tüm veriler başarıyla geri yüklendi! Uygulama yenileniyor...");
-                        location.reload(); 
+                        alert("Tüm veriler başarıyla geri yüklendi! Uygulama yenileniyor..."); location.reload(); 
                     }
-                } else {
-                    alert("Geçersiz yedek dosyası!");
-                }
+                } else { alert("Geçersiz yedek dosyası!"); }
             } catch(err) { alert("Dosya okuma hatası."); }
         };
         reader.readAsText(file);
