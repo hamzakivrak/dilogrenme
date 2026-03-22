@@ -9,7 +9,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let studyLang = localStorage.getItem('studyLang') || "Almanca";
     let vault = JSON.parse(localStorage.getItem('myVault')) || [];
     
-    // YENİ: Oturum (20'li Kart) ve AI Hafızası
+    // YENİ: Kalıcı Hikaye Kütüphanesi KASASI
+    let storyVault = JSON.parse(localStorage.getItem('myStories')) || []; 
+    
     let sessionVault = [...vault]; 
     let currentCardIndex = 0;
     let aiCache = JSON.parse(localStorage.getItem('dil_ai_cache')) || {}; 
@@ -17,6 +19,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (document.getElementById('native-language')) document.getElementById('native-language').value = nativeLang;
     if (document.getElementById('study-language')) document.getElementById('study-language').value = studyLang;
+
+    // Başlangıçta Kütüphaneyi Çiz
+    renderStoryList();
 
     // --- NAVİGASYON ---
     const navBtns = document.querySelectorAll('.nav-btn');
@@ -55,7 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('study-language').addEventListener('change', (e) => { studyLang = e.target.value; localStorage.setItem('studyLang', studyLang); });
     
     document.getElementById('btn-clear-cache').addEventListener('click', () => {
-        if(confirm("AI hafızası silinecek (Kaydedilen kelimelerin silinmez). Emin misin?")) {
+        if(confirm("AI hafızası silinecek (Kayıtlı kelimelerin ve HİKAYELERİN silinmez). Emin misin?")) {
             aiCache = {};
             localStorage.setItem('dil_ai_cache', JSON.stringify(aiCache));
             alert("Hafıza temizlendi!");
@@ -63,9 +68,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- AKILLI VE HAFIZALI AI MOTORU ---
-    // expectJson true gelirse Google'a "Kesin JSON dön" komutu verir.
     async function callGemini(cacheKey, prompt, expectJson = false) {
-        // 1. HAFIZA KONTROLÜ (Aynı soruyu daha önce sorduysak API'yi yorma!)
+        // CacheKey gönderildiyse ve hafızada varsa internete bağlanma
         if (cacheKey && aiCache[cacheKey]) {
             console.log("Hafızadan getirildi:", cacheKey);
             return aiCache[cacheKey]; 
@@ -76,7 +80,6 @@ document.addEventListener('DOMContentLoaded', () => {
         let attempts = 0; 
         const payload = { contents: [{ parts: [{ text: prompt }] }] };
         
-        // JSON ZORLAMASI
         if (expectJson) {
             payload.generationConfig = { responseMimeType: "application/json" };
         }
@@ -104,11 +107,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (data.candidates && data.candidates[0]) {
                     let resultText = data.candidates[0].content.parts[0].text;
                     
-                    // 2. HAFIZAYA KAYDET
+                    // Sadece cacheKey gönderilenleri (Örn: Kelime Analizleri) AI hafızasına al
                     if (cacheKey) {
                         aiCache[cacheKey] = resultText;
                         try { localStorage.setItem('dil_ai_cache', JSON.stringify(aiCache)); } 
-                        catch (e) { console.warn("Hafıza doldu, temizleniyor..."); aiCache = {}; }
+                        catch (e) { aiCache = {}; }
                     }
                     return resultText;
                 }
@@ -118,45 +121,80 @@ document.addEventListener('DOMContentLoaded', () => {
         return null;
     }
 
-    // --- STÜDYO: TOPLU HİKAYE ÜRETİMİ ---
+    // --- STÜDYO: HİKAYE ÜRETİMİ VE KÜTÜPHANE KAYDI ---
     document.getElementById('btn-generate-story').addEventListener('click', async () => {
         const input = document.getElementById('story-prompt').value.trim();
         const count = document.getElementById('story-count').value || 1;
-        const listContainer = document.getElementById('story-list-container');
+        const btn = document.getElementById('btn-generate-story');
         
         if (!input) return;
 
-        listContainer.innerHTML = `<div class="reading-text">AI ${count} adet hikaye taslağı hazırlıyor... Lütfen bekleyin.</div>`;
+        btn.innerText = "Üretiliyor...";
+        btn.disabled = true;
         
-        const cacheKey = `stories_${studyLang}_${count}_${input.substring(0,20)}`;
         const prompt = `Lütfen "${input}" konusunda, ${studyLang} dilinde A1-A2 seviyesinde ${count} adet farklı kısa hikaye yaz. 
         SADECE JSON formatında bir dizi (array) döndür. Format: [{"title": "Hikaye Başlığı", "content": "Hikaye metni..."}]`;
 
-        const responseText = await callGemini(cacheKey, prompt, true);
+        // YENİ: Hikayeler için cacheKey "null" gönderiliyor, böylece her tıklamada YENİ hikayeler çekilir.
+        const responseText = await callGemini(null, prompt, true);
         
-        if (!responseText) { listContainer.innerHTML = "Hata oluştu."; return; }
+        btn.innerText = "Hikaye Üret";
+        btn.disabled = false;
+
+        if (!responseText) { alert("Hikaye üretilemedi."); return; }
 
         try {
             const stories = JSON.parse(responseText);
-            listContainer.innerHTML = ''; // Temizle
-            
-            stories.forEach((story, idx) => {
-                const div = document.createElement('div');
-                div.className = 'story-item';
-                div.innerHTML = `<i class="fa-solid fa-book"></i> ${idx + 1}. ${story.title}`;
-                // Tıklanınca Lab'a gönder
-                div.addEventListener('click', () => {
-                    document.querySelector('[data-target="tab-lab"]').click(); // Laba geç
-                    prepareLabText(story.content);
+            // Üretilen her hikayeyi kalıcı kasaya kaydet
+            stories.forEach(story => {
+                storyVault.unshift({
+                    id: Date.now() + Math.floor(Math.random() * 1000),
+                    title: story.title,
+                    content: story.content,
+                    lang: studyLang
                 });
-                listContainer.appendChild(div);
             });
+            localStorage.setItem('myStories', JSON.stringify(storyVault));
+            renderStoryList(); // Kütüphaneyi güncelle
         } catch(e) {
-            console.error(e); listContainer.innerHTML = "İçerik çekilemedi (JSON Hatası).";
+            console.error(e); alert("İçerik çekilemedi (JSON Hatası).");
         }
     });
 
-    // --- LAB: CÜMLE VE PARAGRAF ANALİZİ (TIKLAMALAR KALDIRILDI) ---
+    // Kütüphane Listesini Çizme
+    function renderStoryList() {
+        const listContainer = document.getElementById('story-list-container');
+        if (storyVault.length === 0) {
+            listContainer.innerHTML = '<div class="empty-vault-msg">Henüz kayıtlı hikaye yok. Yukarıdan üretin.</div>';
+            return;
+        }
+        listContainer.innerHTML = '';
+        storyVault.forEach(story => {
+            const div = document.createElement('div');
+            div.className = 'story-item';
+            div.innerHTML = `
+                <div class="story-item-title"><i class="fa-solid fa-book"></i> ${story.title} <small style="color:#888; margin-left:5px;">(${story.lang})</small></div>
+                <button class="mini-btn" onclick="event.stopPropagation(); deleteStory(${story.id})"><i class="fa-solid fa-trash"></i></button>
+            `;
+            // Hikayeye tıklanınca Lab'da aç
+            div.addEventListener('click', () => {
+                document.querySelector('[data-target="tab-lab"]').click();
+                prepareLabText(story.content);
+            });
+            listContainer.appendChild(div);
+        });
+    }
+
+    // Kütüphaneden Hikaye Silme
+    window.deleteStory = (id) => {
+        if(confirm("Bu hikayeyi kütüphaneden silmek istediğine emin misin?")) {
+            storyVault = storyVault.filter(s => s.id !== id);
+            localStorage.setItem('myStories', JSON.stringify(storyVault));
+            renderStoryList();
+        }
+    };
+
+    // --- LAB: CÜMLE VE PARAGRAF ANALİZİ ---
     function prepareLabText(text) {
         const labContainer = document.getElementById('text-container');
         labContainer.innerHTML = '';
@@ -167,13 +205,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const block = document.createElement('div');
             block.className = 'sentence-block';
             
-            // Metin düz yazı (Tıklanamaz)
             const textSpan = document.createElement('span');
             textSpan.className = 'sentence-text';
             textSpan.innerText = sentText.trim();
             block.appendChild(textSpan);
 
-            // Butonlar
             const actionsDiv = document.createElement('div');
             actionsDiv.className = 'sentence-actions';
             
@@ -194,7 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- AI ÇEKMECESİ (TOPLU KELİME AYIKLAMA EKLENDİ) ---
+    // --- AI ÇEKMECESİ ---
     const drawer = document.getElementById('ai-drawer');
     const chatContainer = document.getElementById('chat-container');
     const extractionContainer = document.getElementById('extraction-container');
@@ -205,13 +241,12 @@ document.addEventListener('DOMContentLoaded', () => {
         currentDrawerContext = sentence;
         drawer.classList.remove('hidden');
         
-        // Ekranları ayarla
         if (action === 'extract') {
             chatContainer.classList.add('hidden');
             extractionContainer.classList.remove('hidden');
             document.getElementById('drawer-title').innerText = "Kelimeler Ayıklanıyor...";
             extractionList.innerHTML = "<div style='padding:20px; text-align:center;'>Derin analiz yapılıyor, lütfen bekleyin...</div>";
-            document.getElementById('btn-save-extracted').classList.add('hidden'); // Veri gelene kadar gizle
+            document.getElementById('btn-save-extracted').classList.add('hidden'); 
             
             const cacheKey = `extract_${studyLang}_${sentence.substring(0,30)}`;
             const prompt = `Şu ${studyLang} cümlesindeki tüm kelimeleri analiz et: "${sentence}".
@@ -243,7 +278,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Kelime Listesini Çiz
     function renderExtractionList(jsonString, sentence) {
         if (!jsonString) { extractionList.innerHTML = "Veri çekilemedi."; return; }
         try {
@@ -255,14 +289,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 const row = document.createElement('div');
                 row.className = 'extracted-row';
                 
-                // Güvenli veri oluşturma (Havuza atılacak kart formatı)
                 const safeData = encodeURIComponent(JSON.stringify({
                     id: Date.now() + Math.floor(Math.random()*1000),
                     lang: studyLang,
                     frontWord: item.word,
                     pos: item.pos,
                     regularity: item.details,
-                    example: sentence, // Örnek olarak kullanıldığı cümleyi atıyoruz
+                    example: sentence,
                     backTranslation: item.translation,
                     backExample: "-"
                 }));
@@ -274,7 +307,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         <span class="ext-details">${item.pos} | ${item.details}</span>
                     </div>
                 `;
-                // Satıra tıklanınca checkbox'ı işaretle
                 row.addEventListener('click', (e) => {
                     if(e.target.type !== 'checkbox') {
                         const cb = row.querySelector('.extracted-checkbox');
@@ -288,7 +320,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (e) { console.error(e); extractionList.innerHTML = "Analiz formatı hatalı."; }
     }
 
-    // Seçilenleri Havuza Kaydet
     document.getElementById('btn-save-extracted').addEventListener('click', () => {
         const checkboxes = document.querySelectorAll('.extracted-checkbox:checked');
         if (checkboxes.length === 0) { alert("Lütfen en az bir kelime seçin."); return; }
@@ -296,7 +327,6 @@ document.addEventListener('DOMContentLoaded', () => {
         let addedCount = 0;
         checkboxes.forEach(cb => {
             const cardData = JSON.parse(decodeURIComponent(cb.value));
-            // Aynı kelime var mı kontrolü
             if(!vault.some(v => v.frontWord === cardData.frontWord)) {
                 vault.unshift(cardData);
                 addedCount++;
@@ -305,16 +335,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if(addedCount > 0) {
             localStorage.setItem('myVault', JSON.stringify(vault));
-            sessionVault = [...vault]; // Oturumu güncelle
+            sessionVault = [...vault]; 
             renderVaultList(); renderFlashcard();
-            alert(`${addedCount} kelime havuza başarıyla eklendi! Kartları hazırlandı.`);
-            document.getElementById('close-drawer').click(); // Çekmeceyi kapat
+            alert(`${addedCount} kelime havuza başarıyla eklendi!`);
+            document.getElementById('close-drawer').click(); 
         } else {
             alert("Seçtiğin kelimeler zaten havuzunda mevcut.");
         }
     });
 
-    // Chat Gönderme
     document.getElementById('btn-drawer-send').addEventListener('click', async () => {
         const inputEl = document.getElementById('drawer-chat-input');
         const question = inputEl.value.trim();
@@ -325,7 +354,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const loadingDiv = document.createElement('div'); loadingDiv.className = 'chat-msg chat-ai'; loadingDiv.innerText = "...";
         chatContent.appendChild(loadingDiv); chatContent.scrollTop = chatContent.scrollHeight;
 
-        // Özel sohbetler cachelenmez
         const answer = await callGemini(null, prompt, false); 
         loadingDiv.remove(); addChatMessage(answer || "Yanıt alınamadı.", 'ai');
     });
@@ -336,10 +364,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     document.getElementById('close-drawer').addEventListener('click', () => { drawer.classList.add('hidden'); });
 
-    // --- FLASHCARD & LİSTE RENDER (20'Lİ OTURUM DESTEKLİ) ---
+    // --- FLASHCARD & LİSTE RENDER ---
     document.getElementById('btn-random-session').addEventListener('click', () => {
         if (vault.length === 0) { alert("Havuz boş!"); return; }
-        // Diziyi karıştır ve ilk 20'yi al
         let shuffled = [...vault].sort(() => 0.5 - Math.random());
         sessionVault = shuffled.slice(0, 20);
         currentCardIndex = 0;
@@ -438,5 +465,4 @@ document.addEventListener('DOMContentLoaded', () => {
         reader.readAsText(file);
     });
 
-    renderVaultList();
 });
