@@ -9,14 +9,18 @@
     <title>AI Dil Asistanı Pro</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#121212">
-    <link rel="stylesheet" href="style.css?v=19">
+    <link rel="stylesheet" href="style.css?v=20">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
 
     <main id="app-content">
         <section id="tab-studio" class="tab-section active">
-            <h2><i class="fa-solid fa-pen-nib"></i> Stüdyo</h2>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h2 style="margin: 0;"><i class="fa-solid fa-pen-nib"></i> Stüdyo</h2>
+                <button id="btn-open-guide" style="background: none; border: none; color: var(--primary-color); font-size: 24px; cursor: pointer;" title="Nasıl Kullanılır?"><i class="fa-solid fa-circle-question"></i></button>
+            </div>
+            
             <div class="ai-input-group">
                 <input type="text" id="story-prompt" placeholder="Örn: Ormanda kaybolan bir çocuk...">
                 <div style="display: flex; gap: 10px; margin-top: 10px;">
@@ -68,7 +72,6 @@
         </section>
 
         <section id="tab-vocab" class="tab-section">
-            
             <div class="top-sub-nav" style="display: flex; align-items: center; justify-content: space-between; background: transparent; border: none; box-shadow: none; padding: 0; margin-bottom: 20px; overflow: visible;">
                 <button id="btn-open-word-list" class="action-btn mini" title="Kelime Listesi" style="background: var(--surface-color); color: var(--text-color); border: 1px solid rgba(128,128,128,0.2); height: 44px; width: 44px; border-radius: 12px; display:flex; justify-content:center; align-items:center;"><i class="fa-solid fa-bars"></i></button>
                 
@@ -192,6 +195,52 @@
         <button class="nav-btn" data-target="tab-vocab"><i class="fa-solid fa-star"></i><span>Havuz</span></button>
         <button class="nav-btn" data-target="tab-settings"><i class="fa-solid fa-gear"></i><span>Ayarlar</span></button>
     </nav>
+
+    <div id="guide-modal" class="modal-overlay hidden">
+        <div class="modal-content" style="max-height: 85vh; overflow-y: auto;">
+            <h3 style="color:var(--primary-color); margin-top:0; border-bottom: 1px solid rgba(128,128,128,0.2); padding-bottom: 10px;"><i class="fa-solid fa-rocket"></i> AI Dil Asistanı Pro</h3>
+            <p style="font-size: 15px;">Hoş geldin! Bu uygulama, cebinde taşıyabileceğin <strong>özel bir dil öğretmenidir</strong>. Yapay zeka ile sana özel okuma metinleri üretir, cümleleri kelime kelime analiz eder ve akıllı sınavlarla bu kelimeleri ezberlemeni sağlar.</p>
+            
+            <div class="guide-step">
+                <strong>⚙️ Adım 0: Motoru Çalıştır (Ayarlar)</strong>
+                Uygulamanın çalışması için önce <strong>Ayarlar</strong> sekmesine git. "Gemini API Anahtarı" yazan yere kendi anahtarını yapıştır ve kaydet. Sonra hemen altından dillerini seç.
+            </div>
+
+            <div class="guide-step">
+                <strong>📖 Adım 1: Metin Üret (Stüdyo)</strong>
+                Stüdyo senin fabrikan. Yukarıya sadece bir konu yaz ve <strong>"Hikaye Üret"</strong> butonuna bas. Çıkan hikayeye tıkla ve <strong>"Laboratuvara Aktar"</strong> de.
+            </div>
+
+            <div class="guide-step">
+                <strong>🔬 Adım 2: Parçalara Ayır (Lab)</strong>
+                Burası ameliyathane! Gönderdiğin hikaye burada cümle cümle ayrılır. Her cümlenin altındaki butonlarla:
+                <ul>
+                    <li>🔊 <strong>Dinle:</strong> Cümleyi orijinal dilde telaffuz eder.</li>
+                    <li>🇹🇷 <strong>Çevir:</strong> Türkçe çevirisini verir.</li>
+                    <li>🔍 <strong>İncele:</strong> Öğretmen gibi cümlenin gramerini açıklar. Buradan Yapay Zekaya soru sorabilir ve cevapları <strong>"Notlara Ekle"</strong> diyerek kaydedebilirsin.</li>
+                    <li>📋 <strong>Ayıkla:</strong> Cümledeki kelimeleri çıkarır. Bilmediğin kelimeleri seçip <strong>"Havuza At"</strong> tuşuyla ezber listene gönderirsin.</li>
+                </ul>
+            </div>
+
+            <div class="guide-step" style="border-bottom:none;">
+                <strong>🧠 Adım 3: Kas Yapma Zamanı (Havuz)</strong>
+                Kaydettiğin tüm kelimeler ve notlar buradadır. 
+                <ul>
+                    <li><strong>Akıllı Çalışma:</strong> Rastgele 20 kelime butonuyla çalışmaya başla. Kartlarla çalıştıktan sonra sistem seni <strong>Yazılı Sınava</strong> sokar!</li>
+                    <li><strong>Geçmiş (Saat İkonu):</strong> Eski kelime gruplarını tekrar etmek için kullan.</li>
+                    <li><strong>Kelime Listesi (Üç Çizgi):</strong> Kaydettiğin kelimeleri topluca gör/sil.</li>
+                    <li><strong>Notlar (Orta Sekme):</strong> AI'dan kaydettiğin altın gramer notlarını oku.</li>
+                </ul>
+            </div>
+
+            <div style="background: rgba(207, 102, 121, 0.1); padding: 12px; border-radius: 8px; border: 1px solid rgba(207, 102, 121, 0.3); margin-top: 10px;">
+                <strong style="color: #cf6679; font-size: 14px;">💾 Unutma: Emeğini Yedekle!</strong>
+                <p style="margin: 5px 0 0 0; font-size: 13px;">Uygulama tüm verileri telefonun tarayıcı hafızasına kaydeder. Geçmişi silersen kelimelerin de gider! Bu yüzden ara sıra <strong>Ayarlar -> Tüm Verileri Yedekle</strong> diyerek kelimelerini ve hikayelerini telefonuna ufak bir dosya olarak indirmeyi unutma.</p>
+            </div>
+
+            <button id="btn-close-guide" class="action-btn" style="width: 100%; margin-top: 20px;">Anladım, Başlayalım!</button>
+        </div>
+    </div>
 
     <div id="session-prep-modal" class="modal-overlay hidden">
         <div class="modal-content" style="max-height: 85vh; display: flex; flex-direction: column; width: 95%; max-width: 500px; padding: 20px;">
