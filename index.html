@@ -44,6 +44,11 @@
                 </div>
                 
                 <div id="extraction-container" class="drawer-content hidden" style="padding-bottom: 20px;">
+                    <div id="loading-indicator" class="hidden" style="text-align:center; padding: 20px; color: var(--primary-color);">
+                        <i class="fa-solid fa-circle-notch fa-spin fa-2x"></i>
+                        <p style="margin-top: 10px; font-weight: bold;">Yapay zeka verileri işliyor...</p>
+                        <small style="color: var(--nav-inactive);">Lütfen bekleyiniz, bu işlem birkaç saniye sürebilir.</small>
+                    </div>
                     <div id="extraction-list"></div>
                     <button id="btn-save-extracted" class="action-btn" style="margin-top: 15px;"><i class="fa-solid fa-star"></i> Seçilenleri Havuza At</button>
                 </div>
@@ -71,9 +76,10 @@
                     <div id="flashcard-container" class="flashcard-container">
                         <div class="empty-vault-msg">Havuz boş. Önce kelime kaydedin.</div>
                     </div>
+                    
                     <div class="flashcard-controls hidden" id="flashcard-controls">
                         <button id="btn-prev-card" class="action-btn mini"><i class="fa-solid fa-arrow-left"></i></button>
-                        <span id="card-counter">1 / 1</span>
+                        <span id="card-counter" style="font-size: 14px; color: var(--nav-inactive);">Kaydırarak geçiş yapın</span>
                         <button id="btn-next-card" class="action-btn mini"><i class="fa-solid fa-arrow-right"></i></button>
                     </div>
                 </div>
@@ -113,28 +119,29 @@
                         <option value="İspanyolca">İspanyolca</option>
                     </select>
                 </div>
+
+                <div class="setting-item">
+                    <div class="setting-info"><strong>Görünüm Teması</strong><span>Arka plan renkleri</span></div>
+                    <select id="theme-select" class="styled-select">
+                        <option value="theme-dark" selected>Koyu Tema (Klasik)</option>
+                        <option value="theme-light">Açık Tema (Gümüş)</option>
+                        <option value="theme-blue">Buz Mavisi</option>
+                    </select>
+                </div>
                 
                 <div class="setting-item backup-box">
                     <div class="setting-info"><strong>Kelime Havuzu Yedeği</strong><span>Verilerini indir/yükle</span></div>
                     <div class="backup-actions">
-                        <button id="btn-export-vault" class="action-btn mini"><i class="fa-solid fa-download"></i></button>
-                        <label for="import-vault" class="action-btn mini file-label"><i class="fa-solid fa-upload"></i></label>
+                        <button id="btn-export-vault" class="action-btn mini"><i class="fa-solid fa-download"></i> İndir</button>
+                        <label for="import-vault" class="action-btn mini file-label"><i class="fa-solid fa-upload"></i> Yükle</label>
                         <input type="file" id="import-vault" accept=".json" style="display:none;">
                     </div>
                 </div>
-
-                <div class="setting-item">
-                    <div class="setting-info"><strong>Görünüm</strong><span>Tema Seçimi</span></div>
-                    <button id="theme-toggle" class="action-btn mini">Değiştir</button>
-                </div>
                 
-                <details class="setting-item advanced-settings" style="flex-direction: column; align-items: flex-start; gap: 10px;">
-                    <summary><strong><i class="fa-solid fa-triangle-exclamation"></i> Gelişmiş Ayarlar</strong></summary>
-                    <div style="width: 100%; display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 10px; border-top: 1px dashed #444;">
-                        <div class="setting-info"><strong>AI Hafızası (Önbellek)</strong><span>Cümle analizlerini sıfırla</span></div>
-                        <button id="btn-clear-cache" class="action-btn mini" style="background:#cf6679;">Temizle</button>
-                    </div>
-                </details>
+                <div class="setting-item">
+                    <div class="setting-info"><strong>AI Hafızası (Önbellek)</strong><span>Cümle analizlerini sıfırla</span></div>
+                    <button id="btn-clear-cache" class="action-btn mini" style="background:#cf6679;">Temizle</button>
+                </div>
             </div>
         </section>
     </main>
@@ -148,9 +155,7 @@
 
     <script src="app.js"></script>
     <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js'); });
-      }
+      if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js'); }); }
     </script>
 </body>
 </html>
