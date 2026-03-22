@@ -3,10 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // -- TEMA SİSTEMİ --
     const themeSelect = document.getElementById('theme-select');
     let savedTheme = localStorage.getItem('dil_theme_class') || "";
-    if (savedTheme) {
-        document.body.classList.add(savedTheme);
-        themeSelect.value = savedTheme;
-    }
+    if (savedTheme) { document.body.classList.add(savedTheme); themeSelect.value = savedTheme; }
 
     themeSelect.addEventListener('change', (e) => {
         document.body.className = ''; 
@@ -44,7 +41,12 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.classList.add('active');
         const target = btn.getAttribute('data-target');
         document.getElementById(target).classList.add('active');
-        if (target === 'tab-vocab') { renderVaultList(); renderFlashcard(); }
+        
+        // Havuz Tabına basıldığında her zaman Kartları (Eğitim Kartları) aç
+        if (target === 'tab-vocab') { 
+            document.querySelector('[data-sub="sub-kelimeler"]').click(); 
+            renderVaultList(); renderFlashcard(); 
+        }
     }));
 
     const subNavBtns = document.querySelectorAll('.sub-nav-btn');
@@ -62,8 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (keysInput) { 
             localStorage.setItem('gemini_api_keys', keysInput); 
             API_KEYS = keysInput.split(',').map(k => k.trim()).filter(k => k !== "");
-            currentKeyIndex = 0; 
-            alert(`${API_KEYS.length} adet API Anahtarı sisteme kaydedildi!`); 
+            currentKeyIndex = 0; alert(`${API_KEYS.length} adet API Anahtarı sisteme kaydedildi!`); 
         }
     });
     if (rawKeys) document.getElementById('api-key-input').value = rawKeys;
@@ -73,11 +74,21 @@ document.addEventListener('DOMContentLoaded', () => {
     
     document.getElementById('btn-clear-cache').addEventListener('click', () => {
         if(confirm("AI hafızası silinecek (Kayıtlı kelimelerin ve HİKAYELERİN silinmez). Emin misin?")) {
-            aiCache = {};
-            localStorage.setItem('dil_ai_cache', JSON.stringify(aiCache));
-            alert("Hafıza temizlendi!");
+            aiCache = {}; localStorage.setItem('dil_ai_cache', JSON.stringify(aiCache)); alert("Hafıza temizlendi!");
         }
     });
+
+    // --- TTS (SESLENDİRME) YARDIMCISI ---
+    window.playAudio = (text, languageName) => {
+        if(!text) return;
+        const ut = new SpeechSynthesisUtterance(text);
+        let langCode = 'de-DE'; // Default
+        if(languageName === 'İngilizce') langCode = 'en-US';
+        else if(languageName === 'İspanyolca') langCode = 'es-ES';
+        else if(languageName === 'Fransızca') langCode = 'fr-FR';
+        ut.lang = langCode;
+        speechSynthesis.speak(ut);
+    };
 
     // --- AKILLI AI MOTORU ---
     async function callGemini(cacheKey, prompt, expectJson = false) {
@@ -110,7 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
         alert("Kotan doldu!"); return null;
     }
 
-    // --- STÜDYO: HİKAYE ÜRETİMİ ---
+    // --- STÜDYO: HİKAYE ÜRETİMİ (GİZLENEBİLİR YAPI) ---
     document.getElementById('btn-generate-story').addEventListener('click', async () => {
         const input = document.getElementById('story-prompt').value.trim();
         const count = document.getElementById('story-count').value || 1;
@@ -118,8 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!input) return;
 
         btn.innerText = "Üretiliyor..."; btn.disabled = true;
-        
-        const prompt = `Lütfen "${input}" konusunda, ${studyLang} dilinde A1-A2 seviyesinde ${count} adet farklı kısa hikaye yaz. SADECE JSON formatında bir dizi (array) döndür. Format: [{"title": "Hikaye Başlığı", "content": "Hikaye metni..."}]`;
+        const prompt = `Lütfen "${input}" konusunda, ${studyLang} dilinde A1-A2 seviyesinde ${count} adet farklı kısa hikaye yaz. SADECE JSON formatında bir dizi döndür. Format: [{"title": "Hikaye Başlığı", "content": "Hikaye metni..."}]`;
 
         const responseText = await callGemini(null, prompt, true);
         btn.innerText = "Hikaye Üret"; btn.disabled = false;
@@ -128,7 +138,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const stories = JSON.parse(responseText);
             stories.forEach(story => {
-                storyVault.unshift({ id: Date.now() + Math.floor(Math.random() * 1000), title: story.title, content: story.content, lang: studyLang });
+                storyVault.unshift({ id: Date.now() + Math.floor(Math.random() * 1000), title: story.title, content: story.content, lang: studyLang, prompt: input });
             });
             localStorage.setItem('myStories', JSON.stringify(storyVault));
             renderStoryList();
@@ -141,17 +151,45 @@ document.addEventListener('DOMContentLoaded', () => {
         listContainer.innerHTML = '';
         storyVault.forEach(story => {
             const div = document.createElement('div'); div.className = 'story-item';
-            div.innerHTML = `<div class="story-item-title"><i class="fa-solid fa-book"></i> ${story.title}</div><button class="mini-btn" onclick="event.stopPropagation(); deleteStory(${story.id})"><i class="fa-solid fa-trash"></i></button>`;
-            div.addEventListener('click', () => { document.querySelector('[data-target="tab-lab"]').click(); prepareLabText(story.content); });
+            div.innerHTML = `
+                <div class="story-header" onclick="toggleStory(${story.id})">
+                    <div class="story-item-title"><i class="fa-solid fa-book"></i> ${story.title}</div>
+                    <div>
+                        <button class="mini-btn" style="background:transparent; color:var(--secondary-color);" onclick="event.stopPropagation(); showPrompt('${story.prompt || "Bilgi yok."}')"><i class="fa-solid fa-circle-question"></i></button>
+                        <button class="mini-btn" style="background:transparent; color:#cf6679;" onclick="event.stopPropagation(); deleteStory(${story.id})"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                </div>
+                <div class="story-content-box hidden" id="story-content-${story.id}">
+                    <p style="margin-bottom: 15px;">${story.content}</p>
+                    <button class="action-btn mini" style="width:100%;" onclick="sendToLab(${story.id})"><i class="fa-solid fa-flask"></i> Laboratuvara Aktar</button>
+                </div>
+            `;
             listContainer.appendChild(div);
         });
     }
 
-    window.deleteStory = (id) => {
-        if(confirm("Hikayeyi silmek istediğine emin misin?")) {
-            storyVault = storyVault.filter(s => s.id !== id); localStorage.setItem('myStories', JSON.stringify(storyVault)); renderStoryList();
+    // Hikaye Gizle/Göster
+    window.toggleStory = (id) => {
+        const contentBox = document.getElementById(`story-content-${id}`);
+        if (contentBox.classList.contains('hidden')) {
+            document.querySelectorAll('.story-content-box').forEach(el => el.classList.add('hidden')); // Diğerlerini kapat
+            contentBox.classList.remove('hidden');
+            history.pushState({ storyOpen: id }, ""); // Geri tuşu için
+        } else {
+            contentBox.classList.add('hidden');
         }
     };
+
+    window.sendToLab = (id) => {
+        const story = storyVault.find(s => s.id === id);
+        if(story) {
+            document.querySelector('[data-target="tab-lab"]').click();
+            prepareLabText(story.content);
+        }
+    };
+
+    window.showPrompt = (promptText) => { alert("Bu hikaye şu komutla oluşturuldu:\n\n" + promptText); };
+    window.deleteStory = (id) => { if(confirm("Hikayeyi silmek istediğine emin misin?")) { storyVault = storyVault.filter(s => s.id !== id); localStorage.setItem('myStories', JSON.stringify(storyVault)); renderStoryList(); } };
 
     // --- LAB: CÜMLE ANALİZİ ---
     async function prepareLabText(text, isRestore = false) {
@@ -171,16 +209,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const actionsDiv = document.createElement('div'); actionsDiv.className = 'sentence-actions';
             
-            const btnTrans = document.createElement('button'); btnTrans.className = 'btn-action-sm action-trans'; btnTrans.innerHTML = '<i class="fa-solid fa-language"></i> Çevir';
+            // TTS Butonu Eklendi
+            const btnTTS = document.createElement('button'); btnTTS.className = 'btn-action-sm action-tts'; btnTTS.innerHTML = '<i class="fa-solid fa-volume-high"></i> Dinle';
+            btnTTS.addEventListener('click', () => playAudio(cleanSent, studyLang));
+
+            const btnTrans = document.createElement('button'); btnTrans.className = 'btn-action-sm'; btnTrans.innerHTML = '<i class="fa-solid fa-language"></i> Çevir';
             btnTrans.addEventListener('click', () => openDrawer(cleanSent, 'translate'));
             
-            const btnGrammar = document.createElement('button'); btnGrammar.className = 'btn-action-sm action-gram'; btnGrammar.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i> İncele';
+            const btnGrammar = document.createElement('button'); btnGrammar.className = 'btn-action-sm'; btnGrammar.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i> İncele';
             btnGrammar.addEventListener('click', () => openDrawer(cleanSent, 'grammar'));
 
-            const btnExtract = document.createElement('button'); btnExtract.className = 'btn-action-sm extract action-ext'; btnExtract.innerHTML = '<i class="fa-solid fa-list-check"></i> Kelimeleri Ayıkla';
+            const btnExtract = document.createElement('button'); btnExtract.className = 'btn-action-sm extract'; btnExtract.innerHTML = '<i class="fa-solid fa-list-check"></i> Ayıkla';
             btnExtract.addEventListener('click', () => openDrawer(cleanSent, 'extract'));
 
-            actionsDiv.appendChild(btnTrans); actionsDiv.appendChild(btnGrammar); actionsDiv.appendChild(btnExtract);
+            actionsDiv.appendChild(btnTTS); actionsDiv.appendChild(btnTrans); actionsDiv.appendChild(btnGrammar); actionsDiv.appendChild(btnExtract);
             block.appendChild(actionsDiv); labContainer.appendChild(block);
         });
 
@@ -230,16 +272,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const savedLabText = sessionStorage.getItem('activeLabText');
     if (savedLabText) prepareLabText(savedLabText, true); 
 
-    // --- AI ÇEKMECESİ VE GERİ TUŞU KONTROLÜ ---
+    // --- AI ÇEKMECESİ VE GERİ TUŞU (HISTORY API) KONTROLÜ ---
     const drawer = document.getElementById('ai-drawer');
     const chatContainer = document.getElementById('chat-container');
     const extractionContainer = document.getElementById('extraction-container');
     const chatContent = document.getElementById('ai-response-content');
     const extractionList = document.getElementById('extraction-list');
     
+    // Geri Tuşu Algılayıcısı (Hikaye ve Çekmece kapatma)
     window.addEventListener('popstate', (e) => {
         if (!drawer.classList.contains('hidden')) {
             drawer.classList.add('hidden'); 
+        } else {
+            document.querySelectorAll('.story-content-box').forEach(el => el.classList.add('hidden'));
         }
     });
 
@@ -318,13 +363,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     regularity: item.details, example: item.example || sentence, backTranslation: item.translation, backExample: item.example_tr || "-"
                 }));
 
-                // innerHTML ile basıyoruz ki HTML tagları (<b>, <ul>) çalışsın
                 row.innerHTML = `
                     <input type="checkbox" class="extracted-checkbox" value="${safeData}">
                     <div class="extracted-info">
-                        <div>
-                            <span class="ext-word">${item.word}</span> <span class="ext-trans">- ${item.translation}</span>
-                        </div>
+                        <div><span class="ext-word">${item.word}</span> <span class="ext-trans">- ${item.translation}</span></div>
                         <span class="ext-pos">${item.pos}</span>
                         <div class="ext-details-box">${item.details}</div>
                     </div>
@@ -370,12 +412,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function addChatMessage(text, sender) {
         const msgDiv = document.createElement('div'); msgDiv.className = `chat-msg chat-${sender}`;
-        // innerText yerine innerHTML kullanıyoruz ki formatlı gelsin
-        msgDiv.innerHTML = text; 
+        msgDiv.innerHTML = text; // HTML Formatında basıyoruz
         chatContent.appendChild(msgDiv); chatContent.scrollTop = chatContent.scrollHeight;
     }
 
-    // --- FLASHCARD (ÖN/ARKA YÜZ OPTİMİZASYONU) ---
+    // --- FLASHCARD & LİSTE (SWIPE ENTEGRASYONLU) ---
     document.getElementById('btn-random-session').addEventListener('click', () => {
         if (vault.length === 0) { alert("Havuz boş!"); return; }
         let shuffled = [...vault].sort(() => 0.5 - Math.random());
@@ -395,11 +436,12 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('card-counter').innerText = `${currentCardIndex + 1} / ${sessionVault.length}`;
         const cardData = sessionVault[currentCardIndex];
 
-        // Ön Yüz: Orijinal Kelime, Cinsi, Orijinal Örnek. 
-        // Arka Yüz: Çevirisi, Gramer/AI Detayları, Türkçe Örnek.
+        // Ön Yüz: Kelime, Tür, Orijinal Cümle, TTS Butonu
+        // Arka Yüz: Türkçe Çeviri, Gramer Detayı, Türkçe Cümle
         container.innerHTML = `
             <div class="flashcard" onclick="this.classList.toggle('flipped')">
                 <div class="card-face card-front">
+                    <button class="tts-icon" onclick="event.stopPropagation(); playAudio('${cardData.frontWord}', '${cardData.lang}')"><i class="fa-solid fa-volume-high"></i></button>
                     <div class="fc-word">${cardData.frontWord || "Hata"}</div>
                     <div class="fc-type">${cardData.pos || "Kelime Türü Belirsiz"}</div>
                     <div class="fc-example">"${cardData.example || ""}"</div>
@@ -417,13 +459,29 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-prev-card').addEventListener('click', () => { if (currentCardIndex > 0) { currentCardIndex--; renderFlashcard(); } });
     document.getElementById('btn-next-card').addEventListener('click', () => { if (currentCardIndex < sessionVault.length - 1) { currentCardIndex++; renderFlashcard(); } });
 
+    // Havuz Ekranı Swipe (Kartlar ve Liste Arası Geçiş + Kart Değiştirme)
     let touchstartX = 0; let touchendX = 0;
-    const fcContainer = document.getElementById('flashcard-container');
-    fcContainer.addEventListener('touchstart', e => { touchstartX = e.changedTouches[0].screenX; }, {passive: true});
-    fcContainer.addEventListener('touchend', e => {
+    
+    // Tüm Havuz Ekranında (Tab) Sağ/Sol Kaydırma Dinleyicisi
+    const vocabTab = document.getElementById('tab-vocab');
+    vocabTab.addEventListener('touchstart', e => { 
+        touchstartX = e.changedTouches[0].screenX; 
+    }, {passive: true});
+    
+    vocabTab.addEventListener('touchend', e => {
         touchendX = e.changedTouches[0].screenX;
-        if (touchendX < touchstartX - 50) document.getElementById('btn-next-card').click(); 
-        if (touchendX > touchstartX + 50) document.getElementById('btn-prev-card').click(); 
+        let isInsideCard = e.target.closest('.flashcard-container'); // Kartın içindeyse kartı değiştir
+        
+        if (touchendX < touchstartX - 60) {
+            // Sola Kaydır
+            if (isInsideCard) document.getElementById('btn-next-card').click();
+            else document.querySelector('[data-sub="sub-liste"]').click(); // Listeye geç
+        }
+        if (touchendX > touchstartX + 60) {
+            // Sağa Kaydır
+            if (isInsideCard) document.getElementById('btn-prev-card').click();
+            else document.querySelector('[data-sub="sub-kelimeler"]').click(); // Kartlara geç
+        }
     }, {passive: true});
 
     function renderVaultList() {
@@ -432,7 +490,7 @@ document.addEventListener('DOMContentLoaded', () => {
         vault.forEach(item => {
             const card = document.createElement('div'); card.className = 'word-card';
             card.innerHTML = `<div><small>${item.lang}</small><div><strong>${item.frontWord}</strong></div></div>
-                              <button class="mini-btn" onclick="deleteWord(${item.id})"><i class="fa-solid fa-trash"></i></button>`;
+                              <button class="mini-btn" style="background:transparent; color:#cf6679; border:1px solid #cf6679;" onclick="deleteWord(${item.id})"><i class="fa-solid fa-trash"></i></button>`;
             list.appendChild(card);
         });
     }
