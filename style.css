@@ -1,8 +1,38 @@
-:root { --bg-color: #121212; --surface-color: #1e1e1e; --text-color: #e0e0e0; --primary-color: #bb86fc; --secondary-color: #03dac6; --nav-bg: #1f1f1f; --nav-active: #bb86fc; --nav-inactive: #888888; }
-body.light-theme { --bg-color: #f5f5f5; --surface-color: #ffffff; --text-color: #333333; --primary-color: #6200ee; --secondary-color: #018786; --nav-bg: #ffffff; --nav-active: #6200ee; }
+:root { 
+    --bg-gradient: linear-gradient(-45deg, #121212, #2a0845, #121212);
+    --surface-color: #1e1e1e; 
+    --text-color: #e0e0e0; 
+    --primary-color: #bb86fc; 
+    --secondary-color: #03dac6; 
+    --nav-bg: #1f1f1f; 
+    --nav-active: #bb86fc; 
+    --nav-inactive: #888888; 
+}
+
+body.theme-light { --bg-gradient: linear-gradient(-45deg, #f5f5f5, #e0c3fc, #8ec5fc); --surface-color: #ffffff; --text-color: #333333; --primary-color: #6200ee; --secondary-color: #018786; --nav-bg: #ffffff; --nav-active: #6200ee; }
+body.theme-fire { --bg-gradient: linear-gradient(-45deg, #2b0000, #1a0000, #4a0000); --surface-color: #1e0000; --text-color: #ffcccc; --primary-color: #ff5252; --secondary-color: #ffb142; --nav-bg: #110000; --nav-active: #ff5252; }
+body.theme-ocean { --bg-gradient: linear-gradient(-45deg, #001f3f, #003366, #001f3f); --surface-color: #002244; --text-color: #cce0ff; --primary-color: #00a8ff; --secondary-color: #00dbde; --nav-bg: #001122; --nav-active: #00a8ff; }
+
+html, body {
+    overscroll-behavior-y: contain; /* Pull-to-refresh engeli */
+}
 
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, sans-serif; }
-body { background: var(--bg-color); color: var(--text-color); padding-bottom: 80px; transition: 0.3s; overscroll-behavior-y: none; }
+
+body { 
+    background: var(--bg-gradient); 
+    background-size: 300% 300%;
+    animation: gradientBG 15s ease infinite;
+    color: var(--text-color); 
+    padding-bottom: 80px; 
+    transition: 0.3s; 
+}
+
+@keyframes gradientBG {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
 
 .tab-section { display: none; padding: 20px; animation: fadeIn 0.3s ease; }
 .tab-section.active { display: block; }
@@ -19,19 +49,16 @@ body { background: var(--bg-color); color: var(--text-color); padding-bottom: 80
 .ai-input-group input { padding: 15px; border-radius: 12px; border: 1px solid #444; background: #1e1e1e; color: #fff; font-size: 16px; outline: none; }
 .ai-input-group input:focus { border-color: var(--primary-color); }
 
-/* Yeni Hikaye Listesi */
 .story-item { background: #2c2c2c; padding: 15px; border-radius: 12px; margin-bottom: 10px; cursor: pointer; border-left: 4px solid var(--primary-color); display: flex; justify-content: space-between; align-items: center; transition: 0.2s; }
 .story-item-title { font-weight: bold; flex: 1; padding-right: 10px; }
 .story-item:active { transform: scale(0.98); background: #3c3c3c; }
 
-/* Cümle Blokları */
 .sentence-block { display: block; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid rgba(187, 134, 252, 0.2); }
 .sentence-text { display: block; margin-bottom: 10px; }
 .sentence-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
 .btn-action-sm { background: #333; color: var(--primary-color); border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: bold; flex: 1; text-align: center; }
 .btn-action-sm.extract { background: var(--primary-color); color: #fff; }
 
-/* Çekmece */
 .drawer { position: fixed; bottom: 65px; left: 0; width: 100%; height: 75%; background: #1e1e1e; border-top: 3px solid var(--primary-color); border-radius: 20px 20px 0 0; z-index: 1500; transition: 0.3s; display: flex; flex-direction: column; box-shadow: 0 -10px 25px rgba(0,0,0,0.5); }
 .drawer.hidden { display: none; transform: translateY(110%); }
 .drawer-header { padding: 15px 20px; background: #2c2c2c; border-radius: 20px 20px 0 0; display: flex; justify-content: space-between; align-items: center; font-weight: bold; font-size: 16px; border-bottom: 1px solid #333; }
@@ -44,7 +71,6 @@ body { background: var(--bg-color); color: var(--text-color); padding-bottom: 80
 .drawer-input-area input { flex: 1; padding: 14px; border-radius: 25px; border: 1px solid #444; background: #121212; color: #fff; font-size: 15px; outline: none; }
 #btn-drawer-send { background: var(--primary-color); color: #fff; border: none; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; }
 
-/* Kelime Ayıklama Listesi */
 .extracted-row { display: flex; align-items: center; background: #2c2c2c; padding: 12px; border-radius: 10px; margin-bottom: 8px; border: 1px solid #444; }
 .extracted-checkbox { width: 22px; height: 22px; margin-right: 15px; accent-color: var(--primary-color); }
 .extracted-info { flex: 1; display: flex; flex-direction: column; }
@@ -52,7 +78,6 @@ body { background: var(--bg-color); color: var(--text-color); padding-bottom: 80
 .ext-trans { font-size: 14px; color: #ddd; }
 .ext-details { font-size: 12px; color: #888; font-style: italic; margin-top: 4px; }
 
-/* Flashcards & Ayarlar */
 .top-sub-nav { display: flex; background: var(--surface-color); border-radius: 10px; margin-bottom: 20px; overflow: hidden; border: 1px solid rgba(128,128,128,0.2); }
 .sub-nav-btn { flex: 1; padding: 12px; background: none; border: none; color: var(--text-color); font-weight: bold; cursor: pointer; }
 .sub-nav-btn.active { background: var(--primary-color); color: #fff; }
@@ -81,3 +106,7 @@ body { background: var(--bg-color); color: var(--text-color); padding-bottom: 80
 .mini-btn { background: #cf6679; color: #fff; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; margin-left: 5px;}
 .styled-select { padding: 10px; border-radius: 8px; background: var(--bg-color); color: var(--text-color); border: 1px solid #444; outline: none; }
 .hidden { display: none !important; }
+
+/* Gelişmiş Ayarlar Menüsü İçin */
+.advanced-settings summary { cursor: pointer; color: #cf6679; outline: none; padding: 5px 0; }
+.advanced-settings summary::-webkit-details-marker { display: none; }
