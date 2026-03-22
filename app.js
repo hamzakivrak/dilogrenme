@@ -40,44 +40,36 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('native-language').addEventListener('change', (e) => { nativeLang = e.target.value; localStorage.setItem('nativeLang', nativeLang); });
     document.getElementById('study-language').addEventListener('change', (e) => { studyLang = e.target.value; localStorage.setItem('studyLang', studyLang); });
 
-    // --- YAPAY ZEKA MOTORU (HATA DEDEKTİFİ EKLENDİ) ---
-    async function callGemini(prompt, isLite = false, expectJson = false) {
+    // --- SADELEŞTİRİLMİŞ, KUSURSUZ YAPAY ZEKA MOTORU ---
+    async function callGemini(prompt) {
         if (!API_KEY) { alert("Lütfen Ayarlar'dan API Key girin!"); return null; }
-        const modelName = isLite ? 'gemini-2.5-flash-lite' : 'gemini-2.5-flash';
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${API_KEY}`;
+        // Her şey için en stabil model!
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
         
-        const payload = { contents: [{ parts: [{ text: prompt }] }] };
-        
-        if (expectJson) {
-            payload.generationConfig = { responseMimeType: "application/json" };
-        }
-
         try {
             const response = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
             });
             const data = await response.json();
             
-            // DEDEKTİF KODU BURADA: Hata varsa ekrana fırlatacak
             if (data.error) {
-                console.error("API Hatası:", data.error);
                 alert("Google API Hatası: " + data.error.message); 
                 return null;
             }
             if (!data.candidates || !data.candidates[0]) {
-                alert("Yapay zeka boş bir yanıt gönderdi. Lütfen tekrar dene.");
+                alert("Yapay zeka yanıt veremedi. Lütfen tekrar dene.");
                 return null;
             }
             return data.candidates[0].content.parts[0].text;
         } catch (error) {
-            console.error("Bağlantı Hatası:", error);
-            alert("İnternet veya Bağlantı Hatası: " + error.message);
+            alert("Bağlantı Hatası: Lütfen internetinizi kontrol edin.");
             return null;
         }
     }
 
+    // --- STÜDYO ---
     document.getElementById('btn-generate-story').addEventListener('click', async () => {
         const input = document.getElementById('story-prompt').value;
         const display = document.getElementById('generated-story-display');
@@ -86,11 +78,12 @@ document.addEventListener('DOMContentLoaded', () => {
         display.style.display = 'block';
         display.innerText = "Yapay zeka metni yazıyor...";
         const prompt = `Lütfen "${input}" konusu hakkında sadece ${studyLang} dilinde kısa bir metin yaz. Başka hiçbir dilde açıklama yapma.`;
-        const story = await callGemini(prompt, false, false); 
+        const story = await callGemini(prompt); 
         if (story) { display.innerText = story; prepareLabText(story); }
-        else { display.innerText = "Metin oluşturulurken bir hata oluştu."; }
+        else { display.innerText = "Metin oluşturulurken bir hata oluştu. Lütfen tekrar deneyin."; }
     });
 
+    // --- LAB ---
     function prepareLabText(text) {
         const labContainer = document.getElementById('text-container');
         labContainer.innerHTML = '';
@@ -140,7 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const span = document.getElementById('bubble-translation');
         span.innerText = "Çevriliyor...";
         const prompt = `Sadece şu kelimenin ${nativeLang} dilindeki tek kelimelik karşılığını ver: "${word}"`;
-        const result = await callGemini(prompt, true, false); 
+        const result = await callGemini(prompt); 
         span.innerText = result ? result.trim() : word;
     }
 
@@ -165,7 +158,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('drawer-title').innerText = "Gramer Analizi";
         }
         addChatMessage(loadingMsg, 'ai');
-        const response = await callGemini(prompt, false, false);
+        const response = await callGemini(prompt);
         chatContent.innerHTML = ''; addChatMessage(response || "Hata oluştu, lütfen tekrar dene.", 'ai');
     }
 
@@ -180,7 +173,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const loadingDiv = document.createElement('div'); loadingDiv.className = 'chat-msg chat-ai'; loadingDiv.innerText = "Düşünüyor...";
         chatContent.appendChild(loadingDiv); chatContent.scrollTop = chatContent.scrollHeight;
 
-        const answer = await callGemini(aiContextPrompt, false, false);
+        const answer = await callGemini(aiContextPrompt);
         loadingDiv.remove(); addChatMessage(answer || "Yanıt alınamadı.", 'ai');
     });
 
@@ -197,6 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
         window.speechSynthesis.speak(ut);
     });
 
+    // --- KART KAYDETME ---
     document.getElementById('btn-save').addEventListener('click', async (e) => {
         e.stopPropagation();
         if(!selectedText) return;
@@ -207,7 +201,8 @@ document.addEventListener('DOMContentLoaded', () => {
         alert(`"${selectedText}" için detaylar yapay zekadan çekiliyor, lütfen bekle...`);
 
         const prompt = `Lütfen "${selectedText}" kelimesi için ${studyLang} dilinden ${nativeLang} diline detaylı bilgi ver.
-        Format şu olmalı (SADECE JSON):
+        SADECE geçerli bir JSON formatında cevap ver. Kod bloğu veya markdown KULLANMA. Sadece süslü parantez ile başlayan JSON verisi ver.
+        Format şu olmalı:
         {
           "word": "artikel + kelime",
           "pos": "kelime türü",
@@ -217,15 +212,13 @@ document.addEventListener('DOMContentLoaded', () => {
           "exampleTranslation": "örnek cümle çevirisi"
         }`;
 
-        let jsonResponse = await callGemini(prompt, false, true);
-        
-        if (!jsonResponse) {
-            alert("Kelime bilgileri çekilemedi. Bağlantını kontrol et.");
-            return;
-        }
+        let jsonResponse = await callGemini(prompt);
+        if (!jsonResponse) return;
 
         try {
-            const richData = JSON.parse(jsonResponse);
+            // API'nin ekleyebileceği gereksiz markdown işaretlerini temizle
+            const cleanedResponse = jsonResponse.replace(/```json/g, '').replace(/```/g, '').trim();
+            const richData = JSON.parse(cleanedResponse);
             
             const newCard = {
                 id: Date.now(),
@@ -241,19 +234,18 @@ document.addEventListener('DOMContentLoaded', () => {
             
             vault.unshift(newCard); 
             localStorage.setItem('myVault', JSON.stringify(vault));
-            
             currentCardIndex = 0; 
             renderVaultList();
             renderFlashcard(); 
-            
             alert("Kart başarıyla oluşturuldu ve havuza eklendi!");
             
         } catch(err) {
-            console.error("JSON Parse Hatası:", err, "Gelen Yanıt:", jsonResponse);
-            alert("Kelime kaydedilirken AI format hatası yaptı, tekrar dene.");
+            console.error("JSON Parse Hatası:", err);
+            alert("Kelime kaydedilirken bir hata oluştu, tekrar dene.");
         }
     });
 
+    // --- FLASHCARD & LİSTE RENDER ---
     function renderFlashcard() {
         const container = document.getElementById('flashcard-container');
         const controls = document.getElementById('flashcard-controls');
