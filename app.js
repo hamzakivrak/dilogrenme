@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('native-language').addEventListener('change', (e) => { nativeLang = e.target.value; localStorage.setItem('nativeLang', nativeLang); });
     document.getElementById('study-language').addEventListener('change', (e) => { studyLang = e.target.value; localStorage.setItem('studyLang', studyLang); });
 
-    // --- YAPAY ZEKA MOTORU (SORUN 2 ÇÖZÜMÜ: Gelişmiş Hata Yönetimi) ---
+    // --- YAPAY ZEKA MOTORU (HATA DEDEKTİFİ EKLENDİ) ---
     async function callGemini(prompt, isLite = false, expectJson = false) {
         if (!API_KEY) { alert("Lütfen Ayarlar'dan API Key girin!"); return null; }
         const modelName = isLite ? 'gemini-2.5-flash-lite' : 'gemini-2.5-flash';
@@ -48,7 +48,6 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const payload = { contents: [{ parts: [{ text: prompt }] }] };
         
-        // Eğer json bekleniyorsa, Google'a bunu zorunlu kılıyoruz.
         if (expectJson) {
             payload.generationConfig = { responseMimeType: "application/json" };
         }
@@ -61,13 +60,21 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             const data = await response.json();
             
-            if (data.error || !data.candidates || !data.candidates[0]) {
-                console.error("API Hatası/Geçersiz Yanıt:", data); 
-                return null; 
+            // DEDEKTİF KODU BURADA: Hata varsa ekrana fırlatacak
+            if (data.error) {
+                console.error("API Hatası:", data.error);
+                alert("Google API Hatası: " + data.error.message); 
+                return null;
+            }
+            if (!data.candidates || !data.candidates[0]) {
+                alert("Yapay zeka boş bir yanıt gönderdi. Lütfen tekrar dene.");
+                return null;
             }
             return data.candidates[0].content.parts[0].text;
         } catch (error) {
-            console.error("Bağlantı Hatası:", error); return null;
+            console.error("Bağlantı Hatası:", error);
+            alert("İnternet veya Bağlantı Hatası: " + error.message);
+            return null;
         }
     }
 
@@ -190,7 +197,6 @@ document.addEventListener('DOMContentLoaded', () => {
         window.speechSynthesis.speak(ut);
     });
 
-    // --- AKILLI KAYDETME (SORUN 3 ÇÖZÜMÜ: Anında Render Eklendi) ---
     document.getElementById('btn-save').addEventListener('click', async (e) => {
         e.stopPropagation();
         if(!selectedText) return;
@@ -211,7 +217,6 @@ document.addEventListener('DOMContentLoaded', () => {
           "exampleTranslation": "örnek cümle çevirisi"
         }`;
 
-        // isLite = false, expectJson = true olarak gönderiyoruz
         let jsonResponse = await callGemini(prompt, false, true);
         
         if (!jsonResponse) {
@@ -237,9 +242,9 @@ document.addEventListener('DOMContentLoaded', () => {
             vault.unshift(newCard); 
             localStorage.setItem('myVault', JSON.stringify(vault));
             
-            currentCardIndex = 0; // Yeni ekleneni ilk sıraya al
+            currentCardIndex = 0; 
             renderVaultList();
-            renderFlashcard(); // Sorun 3 buradaydı: Kartı ekrana basmayı unutmuştuk, artık basıyor!
+            renderFlashcard(); 
             
             alert("Kart başarıyla oluşturuldu ve havuza eklendi!");
             
