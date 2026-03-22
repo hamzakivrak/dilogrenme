@@ -19,8 +19,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let nativeLang = localStorage.getItem('nativeLang') || "Türkçe";
     let studyLang = localStorage.getItem('studyLang') || "Almanca";
+    
     let vault = JSON.parse(localStorage.getItem('myVault')) || [];
     let storyVault = JSON.parse(localStorage.getItem('myStories')) || []; 
+    let notesVault = JSON.parse(localStorage.getItem('dil_notes')) || []; // YENİ NOTLAR KASASI
     let sessionVault = [...vault]; 
     let currentCardIndex = 0;
     
@@ -30,11 +32,13 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentDrawerContext = ""; 
     let currentDrawerAction = ""; 
     let currentStoryAnalysisData = {}; 
+    let pendingNoteContent = ""; // Kaydedilmeyi bekleyen yapay zeka mesajı
 
     if (document.getElementById('native-language')) document.getElementById('native-language').value = nativeLang;
     if (document.getElementById('study-language')) document.getElementById('study-language').value = studyLang;
 
     renderStoryList();
+    renderNotesList(); // Açılışta notları da çiz
 
     // --- NAVİGASYON ---
     const navBtns = document.querySelectorAll('.nav-btn');
@@ -48,7 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (target === 'tab-vocab') { 
             document.querySelector('[data-sub="sub-kelimeler"]').click(); 
-            renderVaultList(); renderFlashcard(); 
+            renderVaultList(); renderFlashcard(); renderNotesList();
         }
     }));
 
@@ -75,20 +79,17 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('native-language').addEventListener('change', (e) => { nativeLang = e.target.value; localStorage.setItem('nativeLang', nativeLang); });
     document.getElementById('study-language').addEventListener('change', (e) => { studyLang = e.target.value; localStorage.setItem('studyLang', studyLang); });
     
-    document.getElementById('btn-open-delete-modal').addEventListener('click', () => {
-        document.getElementById('delete-modal').classList.remove('hidden');
-    });
-    document.getElementById('btn-cancel-del').addEventListener('click', () => {
-        document.getElementById('delete-modal').classList.add('hidden');
-    });
+    document.getElementById('btn-open-delete-modal').addEventListener('click', () => { document.getElementById('delete-modal').classList.remove('hidden'); });
+    document.getElementById('btn-cancel-del').addEventListener('click', () => { document.getElementById('delete-modal').classList.add('hidden'); });
 
     document.getElementById('btn-confirm-del').addEventListener('click', () => {
         const delCache = document.getElementById('chk-del-cache').checked;
         const delChat = document.getElementById('chk-del-chat').checked;
         const delStories = document.getElementById('chk-del-stories').checked;
         const delVault = document.getElementById('chk-del-vault').checked;
+        const delNotes = document.getElementById('chk-del-notes').checked;
 
-        if (!delCache && !delChat && !delStories && !delVault) {
+        if (!delCache && !delChat && !delStories && !delVault && !delNotes) {
             alert("Lütfen silmek için listeden en az bir öğe seçin."); return;
         }
 
@@ -97,24 +98,27 @@ document.addEventListener('DOMContentLoaded', () => {
             if (delChat) { chatHistoryVault = {}; localStorage.setItem('dil_chat_history', JSON.stringify(chatHistoryVault)); }
             if (delStories) { storyVault = []; localStorage.setItem('myStories', JSON.stringify(storyVault)); renderStoryList(); }
             if (delVault) { vault = []; sessionVault = []; localStorage.setItem('myVault', JSON.stringify(vault)); currentCardIndex = 0; renderVaultList(); renderFlashcard(); }
+            if (delNotes) { notesVault = []; localStorage.setItem('dil_notes', JSON.stringify(notesVault)); renderNotesList(); }
             
             alert("Seçilen veriler cihazınızdan başarıyla silindi!");
             document.getElementById('delete-modal').classList.add('hidden');
             
-            document.getElementById('chk-del-cache').checked = false;
-            document.getElementById('chk-del-chat').checked = false;
-            document.getElementById('chk-del-stories').checked = false;
-            document.getElementById('chk-del-vault').checked = false;
+            document.querySelectorAll('#delete-modal input[type="checkbox"]').forEach(chk => chk.checked = false);
         }
     });
 
-    // --- TÜMÜNÜ SEÇ CHECKBOX DİNLEYİCİSİ ---
     document.getElementById('chk-select-all').addEventListener('change', (e) => {
         const checkboxes = document.querySelectorAll('.extracted-checkbox');
-        checkboxes.forEach(cb => {
-            if(!cb.disabled) cb.checked = e.target.checked;
-        });
+        checkboxes.forEach(cb => { if(!cb.disabled) cb.checked = e.target.checked; });
     });
+
+    function syncSelectAllCheckbox() {
+        const allCheckboxes = document.querySelectorAll('.extracted-checkbox');
+        const checkedBoxes = document.querySelectorAll('.extracted-checkbox:checked');
+        const chkSelectAll = document.getElementById('chk-select-all');
+        if (allCheckboxes.length > 0) chkSelectAll.checked = (allCheckboxes.length === checkedBoxes.length);
+        else chkSelectAll.checked = false;
+    }
 
     // --- TTS (SESLENDİRME) YARDIMCISI ---
     window.playAudio = (text, languageName) => {
@@ -176,7 +180,6 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const stories = JSON.parse(responseText);
             stories.forEach(story => {
-                // isWorked özelliği default false başlar
                 storyVault.unshift({ id: Date.now() + Math.floor(Math.random() * 1000), title: story.title, content: story.content, lang: studyLang, prompt: input, isWorked: false });
             });
             localStorage.setItem('myStories', JSON.stringify(storyVault));
@@ -190,8 +193,6 @@ document.addEventListener('DOMContentLoaded', () => {
         listContainer.innerHTML = '';
         storyVault.forEach(story => {
             const div = document.createElement('div'); 
-            
-            // Eğer daha önce Laba aktarıldıysa worked stili ve ikonu uygula
             const workedClass = story.isWorked ? ' worked' : '';
             const workedIcon = story.isWorked ? '<i class="fa-solid fa-check-double" style="margin-right:5px; font-size:12px;"></i> ' : '';
             
@@ -227,10 +228,9 @@ document.addEventListener('DOMContentLoaded', () => {
     window.sendToLab = (id) => {
         const story = storyVault.find(s => s.id === id);
         if(story) {
-            story.isWorked = true; // Çalışıldı olarak işaretle
+            story.isWorked = true; 
             localStorage.setItem('myStories', JSON.stringify(storyVault));
-            renderStoryList(); // Renk değişimi için listeyi yenile
-            
+            renderStoryList(); 
             document.querySelector('[data-target="tab-lab"]').click();
             prepareLabText(story.content);
         }
@@ -291,7 +291,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!isRestore && API_KEYS.length > 0) { autoAnalyzeFullStory(text); }
     }
 
-    // ÖĞRETMEN MODU VE BİÇİMLENDİRME: TOPLU ANALİZ MOTORU
     async function autoAnalyzeFullStory(fullText) {
         const buttons = document.querySelectorAll('.sentence-actions button');
         buttons.forEach(b => { b.disabled = true; });
@@ -346,6 +345,7 @@ document.addEventListener('DOMContentLoaded', () => {
             drawer.classList.add('hidden'); 
         } else {
             document.querySelectorAll('.story-content-box').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.note-content-box').forEach(el => el.classList.add('hidden'));
         }
     });
 
@@ -365,15 +365,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (action === 'extract' || action === 'extract-all') {
             document.getElementById('drawer-action-name').innerText = action === 'extract-all' ? "Tüm Hikayedeki Kelimeler" : "Kelimeler Ayıklanıyor";
-            chatContainer.classList.add('hidden'); extractionContainer.classList.remove('hidden');
-            document.getElementById('btn-save-extracted').classList.add('hidden'); 
+            chatContainer.classList.add('hidden'); 
+            extractionContainer.classList.remove('hidden');
             
-            // Tümünü Seç kutucuğunu sıfırla
+            document.getElementById('btn-save-extracted').classList.add('hidden'); 
+            document.getElementById('extract-header-actions').classList.add('hidden');
+            
             const chkSelectAll = document.getElementById('chk-select-all');
             if (chkSelectAll) chkSelectAll.checked = false;
 
             if (action === 'extract-all') {
-                // YAPAY ZEKAYA YENİDEN SORMADAN, ARKA PLANDAKİ VERİLERİ TOPLA
                 let allWords = [];
                 let wordSet = new Set();
                 
@@ -381,7 +382,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (data && data.words) {
                         data.words.forEach(w => {
                             let key = w.word.toLowerCase().trim();
-                            if (!wordSet.has(key)) { // Tekrar edenleri filtrele
+                            if (!wordSet.has(key)) { 
                                 wordSet.add(key);
                                 let cloneW = {...w};
                                 if (!cloneW.example) cloneW.example = sent;
@@ -456,6 +457,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const words = JSON.parse(jsonString);
             extractionList.innerHTML = '';
             
+            if (words.length > 0) {
+                document.getElementById('extract-header-actions').classList.remove('hidden');
+                document.getElementById('btn-save-extracted').classList.remove('hidden');
+            }
+            
             words.forEach(item => {
                 const row = document.createElement('div'); row.className = 'extracted-row';
                 const safeExample = item.example || (contextText.length > 100 ? "Metinden örnek" : contextText);
@@ -473,12 +479,16 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="ext-details-box">${item.details}</div>
                     </div>
                 `;
+                
                 row.addEventListener('click', (e) => {
                     if(e.target.type !== 'checkbox') { const cb = row.querySelector('.extracted-checkbox'); cb.checked = !cb.checked; }
+                    syncSelectAllCheckbox();
                 });
+                row.querySelector('.extracted-checkbox').addEventListener('change', () => { syncSelectAllCheckbox(); });
+
                 extractionList.appendChild(row);
             });
-            document.getElementById('btn-save-extracted').classList.remove('hidden');
+            
         } catch (e) { extractionList.innerHTML = "Analiz formatı hatalı."; }
     }
 
@@ -496,7 +506,7 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.setItem('myVault', JSON.stringify(vault)); sessionVault = [...vault]; 
             renderVaultList(); renderFlashcard(); alert(`${addedCount} kelime eklendi!`);
             document.getElementById('close-drawer').click(); 
-        } else { alert("Kelimeler havuzda mevcut."); }
+        } else { alert("Seçtiğin kelimeler havuzda mevcut."); }
     });
 
     document.getElementById('btn-drawer-send').addEventListener('click', async () => {
@@ -520,13 +530,121 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // --- YAPAY ZEKA CEVAPLARINA NOTLARA EKLE BUTONU ENTEGRASYONU ---
     function addChatMessage(text, sender) {
-        const msgDiv = document.createElement('div'); msgDiv.className = `chat-msg chat-${sender}`;
+        const msgContainer = document.createElement('div');
+        msgContainer.style.display = "flex";
+        msgContainer.style.flexDirection = "column";
+        msgContainer.style.maxWidth = "90%";
+        msgContainer.style.marginBottom = "20px";
+
+        if (sender === 'user') {
+            msgContainer.style.alignSelf = "flex-end";
+        } else {
+            msgContainer.style.alignSelf = "flex-start";
+        }
+
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `chat-msg chat-${sender}`;
+        msgDiv.style.marginBottom = "5px"; 
+        msgDiv.style.maxWidth = "100%";
         msgDiv.innerHTML = text; 
-        chatContent.appendChild(msgDiv); chatContent.scrollTop = chatContent.scrollHeight;
+        msgContainer.appendChild(msgDiv);
+
+        // Eğer mesaj AI'dan geldiyse ve yükleme mesajı değilse, altına "Notlara Ekle" butonu koy
+        if (sender === 'ai' && !text.includes("Analiz ediliyor") && !text.includes("Öğretmen analiz ediyor") && text !== "...") {
+            const btnSaveNote = document.createElement('button');
+            btnSaveNote.className = "btn-action-sm";
+            btnSaveNote.style.alignSelf = "flex-start";
+            btnSaveNote.style.marginLeft = "10px";
+            btnSaveNote.style.color = "var(--secondary-color)";
+            btnSaveNote.innerHTML = '<i class="fa-regular fa-bookmark"></i> Notlara Ekle';
+            btnSaveNote.onclick = () => window.openNoteModal(text);
+            msgContainer.appendChild(btnSaveNote);
+        }
+
+        chatContent.appendChild(msgContainer); 
+        chatContent.scrollTop = chatContent.scrollHeight;
     }
 
-    // --- FLASHCARD & LİSTE ---
+    // --- YENİ NOTLAR MODÜLÜ İŞLEVLERİ ---
+    window.openNoteModal = (content) => {
+        pendingNoteContent = content;
+        document.getElementById('note-title-input').value = "";
+        document.getElementById('note-title-modal').classList.remove('hidden');
+    };
+
+    document.getElementById('btn-cancel-note').addEventListener('click', () => {
+        document.getElementById('note-title-modal').classList.add('hidden');
+    });
+
+    document.getElementById('btn-save-note-confirm').addEventListener('click', () => {
+        const title = document.getElementById('note-title-input').value.trim();
+        if (!title) { alert("Lütfen notun için bir başlık belirle."); return; }
+        
+        notesVault.unshift({ 
+            id: Date.now(), 
+            title: title, 
+            content: pendingNoteContent,
+            lang: studyLang
+        });
+        
+        localStorage.setItem('dil_notes', JSON.stringify(notesVault));
+        renderNotesList();
+        document.getElementById('note-title-modal').classList.add('hidden');
+        alert("Not başarıyla havuza kaydedildi!");
+    });
+
+    function renderNotesList() {
+        const container = document.getElementById('notes-list-container');
+        if (notesVault.length === 0) { container.innerHTML = '<div class="empty-vault-msg">Henüz kaydedilmiş not yok. AI analizlerini "Notlara Ekle" butonuyla buraya alabilirsin.</div>'; return; }
+        
+        container.innerHTML = '';
+        notesVault.forEach(note => {
+            const div = document.createElement('div');
+            div.className = 'story-item'; // Hikayelerle aynı şık temayı kullanıyoruz
+            div.innerHTML = `
+                <div class="story-header" onclick="toggleNote(${note.id})">
+                    <div class="story-item-title" style="color: var(--secondary-color);"><i class="fa-solid fa-bookmark"></i> ${note.title} <small style="color:#888; margin-left:5px;">(${note.lang})</small></div>
+                    <div>
+                        <button class="mini-btn" style="background:transparent; color:#cf6679;" onclick="event.stopPropagation(); deleteNote(${note.id})"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                </div>
+                <div class="story-content-box note-content-box hidden" id="note-content-${note.id}">
+                    ${note.content}
+                </div>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    window.toggleNote = (id) => {
+        const contentBox = document.getElementById(`note-content-${id}`);
+        if (contentBox.classList.contains('hidden')) {
+            document.querySelectorAll('.note-content-box').forEach(el => el.classList.add('hidden')); 
+            contentBox.classList.remove('hidden');
+            history.pushState({ noteOpen: id }, ""); 
+        } else {
+            contentBox.classList.add('hidden');
+        }
+    };
+
+    window.deleteNote = (id) => {
+        if(confirm("Bu notu silmek istediğine emin misin?")) {
+            notesVault = notesVault.filter(n => n.id !== id);
+            localStorage.setItem('dil_notes', JSON.stringify(notesVault));
+            renderNotesList();
+        }
+    };
+
+    document.getElementById('btn-clear-all-notes').addEventListener('click', () => {
+        if(confirm("Tüm notları silmek istediğine emin misin?")) {
+            notesVault = []; localStorage.setItem('dil_notes', JSON.stringify(notesVault));
+            renderNotesList();
+        }
+    });
+
+    // --- FLASHCARD & LİSTE (YENİ 3 SEKMELİ SWIPE) ---
     document.getElementById('btn-random-session').addEventListener('click', () => {
         if (vault.length === 0) { alert("Havuz boş!"); return; }
         let shuffled = [...vault].sort(() => 0.5 - Math.random());
@@ -574,14 +692,25 @@ document.addEventListener('DOMContentLoaded', () => {
     vocabTab.addEventListener('touchend', e => {
         touchendX = e.changedTouches[0].screenX;
         let isInsideCard = e.target.closest('.flashcard-container'); 
+        const currentSubTab = document.querySelector('.sub-nav-btn.active').getAttribute('data-sub');
         
         if (touchendX < touchstartX - 60) {
-            if (isInsideCard) document.getElementById('btn-next-card').click();
-            else document.querySelector('[data-sub="sub-liste"]').click(); 
+            // Sola Kaydır
+            if (isInsideCard) {
+                document.getElementById('btn-next-card').click();
+            } else {
+                if (currentSubTab === 'sub-kelimeler') document.querySelector('[data-sub="sub-liste"]').click(); 
+                else if (currentSubTab === 'sub-liste') document.querySelector('[data-sub="sub-notlar"]').click(); 
+            }
         }
         if (touchendX > touchstartX + 60) {
-            if (isInsideCard) document.getElementById('btn-prev-card').click();
-            else document.querySelector('[data-sub="sub-kelimeler"]').click(); 
+            // Sağa Kaydır
+            if (isInsideCard) {
+                document.getElementById('btn-prev-card').click();
+            } else {
+                if (currentSubTab === 'sub-notlar') document.querySelector('[data-sub="sub-liste"]').click(); 
+                else if (currentSubTab === 'sub-liste') document.querySelector('[data-sub="sub-kelimeler"]').click(); 
+            }
         }
     }, {passive: true});
 
@@ -616,6 +745,7 @@ document.addEventListener('DOMContentLoaded', () => {
             storyVault: storyVault,
             aiCache: aiCache,
             chatHistoryVault: chatHistoryVault,
+            notesVault: notesVault, // YENİ EKLENDİ
             settings: {
                 apiKeys: localStorage.getItem('gemini_api_keys') || "",
                 nativeLang: nativeLang,
@@ -641,11 +771,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     vault = importedData; sessionVault = [...vault]; localStorage.setItem('myVault', JSON.stringify(vault));
                     currentCardIndex = 0; alert("Eski tip kelime yedeği yüklendi!"); renderVaultList(); renderFlashcard();
                 } else if (importedData.vault !== undefined) {
-                    if(confirm("Bu işlem mevcut tüm hikaye, kelime ve sohbetlerini silecek ve yedekteki verileri yükleyecek. Emin misin?")) {
+                    if(confirm("Bu işlem mevcut tüm hikaye, kelime, not ve sohbetlerini silecek ve yedekteki verileri yükleyecek. Emin misin?")) {
                         localStorage.setItem('myVault', JSON.stringify(importedData.vault || []));
                         localStorage.setItem('myStories', JSON.stringify(importedData.storyVault || []));
                         localStorage.setItem('dil_ai_cache', JSON.stringify(importedData.aiCache || {}));
                         localStorage.setItem('dil_chat_history', JSON.stringify(importedData.chatHistoryVault || {}));
+                        localStorage.setItem('dil_notes', JSON.stringify(importedData.notesVault || [])); // YENİ EKLENDİ
                         
                         if (importedData.settings) {
                             localStorage.setItem('gemini_api_keys', importedData.settings.apiKeys || "");
