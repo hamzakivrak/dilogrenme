@@ -124,14 +124,17 @@
                 </div>
 
                 <div class="setting-item">
-                    <div class="setting-info"><strong>Görünüm</strong><span>Koyu / Açık Tema</span></div>
+                    <div class="setting-info"><strong>Görünüm</strong><span>Tema Seçimi</span></div>
                     <button id="theme-toggle" class="action-btn mini">Değiştir</button>
                 </div>
                 
-                <div class="setting-item">
-                    <div class="setting-info"><strong>AI Hafızası (Önbellek)</strong><span>Cümle analizlerini sıfırla</span></div>
-                    <button id="btn-clear-cache" class="action-btn mini" style="background:#cf6679;">Temizle</button>
-                </div>
+                <details class="setting-item advanced-settings" style="flex-direction: column; align-items: flex-start; gap: 10px;">
+                    <summary><strong><i class="fa-solid fa-triangle-exclamation"></i> Gelişmiş Ayarlar</strong></summary>
+                    <div style="width: 100%; display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 10px; border-top: 1px dashed #444;">
+                        <div class="setting-info"><strong>AI Hafızası (Önbellek)</strong><span>Cümle analizlerini sıfırla</span></div>
+                        <button id="btn-clear-cache" class="action-btn mini" style="background:#cf6679;">Temizle</button>
+                    </div>
+                </details>
             </div>
         </section>
     </main>
