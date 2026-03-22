@@ -9,7 +9,7 @@
     <title>AI Dil Asistanı Pro</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#121212">
-    <link rel="stylesheet" href="style.css?v=18">
+    <link rel="stylesheet" href="style.css?v=19">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
@@ -83,15 +83,15 @@
             <div class="sub-content-area">
                 
                 <div id="sub-kelimeler" class="sub-section active">
-                    <button id="btn-random-session" class="action-btn" style="width: 100%; margin-bottom: 20px; background: var(--secondary-color); color: #000; font-size:15px; box-shadow: 0 4px 15px rgba(3, 218, 198, 0.3);"><i class="fa-solid fa-dumbbell"></i> Rastgele 20 Kelime İle Çalışmaya Başla</button>
+                    <button id="btn-random-session" class="action-btn" style="width: 100%; margin-bottom: 20px; background: var(--secondary-color); color: #000; font-size:15px; box-shadow: 0 4px 15px rgba(3, 218, 198, 0.3);"><i class="fa-solid fa-dumbbell"></i> Rastgele 20 Kelime Seç ve Başla</button>
                     
                     <div id="flashcard-container" class="flashcard-container">
                         </div>
                     
-                    <div class="tinder-controls hidden" id="tinder-controls">
-                        <button id="btn-undo-card" class="btn-tinder undo" title="Geri Al"><i class="fa-solid fa-rotate-left"></i></button>
-                        <button id="btn-again-card" class="btn-tinder again" title="Tekrar Sor (Sola Kaydır)"><i class="fa-solid fa-xmark"></i></button>
-                        <button id="btn-know-card" class="btn-tinder know" title="Öğrendim (Sağa Kaydır)"><i class="fa-solid fa-check"></i></button>
+                    <div class="flashcard-controls hidden" id="flashcard-controls" style="margin-top: 15px;">
+                        <button id="btn-prev-card" class="action-btn mini"><i class="fa-solid fa-arrow-left"></i></button>
+                        <span id="card-counter" style="font-weight:bold; color:var(--text-color);">1 / 1</span>
+                        <button id="btn-next-card" class="action-btn mini"><i class="fa-solid fa-arrow-right"></i></button>
                     </div>
 
                     <div class="quiz-controls hidden" id="quiz-controls">
@@ -103,6 +103,7 @@
                             <button id="btn-quiz-check" class="action-btn" style="border-radius: 10px; width: 50px;"><i class="fa-solid fa-paper-plane"></i></button>
                         </div>
                         <div id="quiz-feedback" style="text-align: center; margin-top: 10px; font-weight: bold; font-size: 14px; min-height: 20px;"></div>
+                        
                         <div style="display:flex; justify-content:space-between; margin-top:15px;">
                             <button id="btn-quiz-prev" class="action-btn mini" style="background: rgba(128,128,128,0.2); color: var(--text-color);"><i class="fa-solid fa-arrow-left"></i> Önceki</button>
                             <button id="btn-quiz-next" class="action-btn mini" style="background: rgba(128,128,128,0.2); color: var(--text-color);">Sonraki <i class="fa-solid fa-arrow-right"></i></button>
@@ -192,6 +193,25 @@
         <button class="nav-btn" data-target="tab-settings"><i class="fa-solid fa-gear"></i><span>Ayarlar</span></button>
     </nav>
 
+    <div id="session-prep-modal" class="modal-overlay hidden">
+        <div class="modal-content" style="max-height: 85vh; display: flex; flex-direction: column; width: 95%; max-width: 500px; padding: 20px;">
+            <h3 style="margin-top:0; color:var(--primary-color);"><i class="fa-solid fa-list-check"></i> Oturum Hazırlığı</h3>
+            <p>Çalışmak istemediğiniz kelimelerin seçimini kaldırıp havuzdan yenileriyle değiştirebilirsiniz.</p>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid rgba(128,128,128,0.2);">
+                <label style="cursor:pointer; display:flex; align-items:center; gap:8px; font-weight:bold; color:var(--text-color); font-size:14px;">
+                    <input type="checkbox" id="chk-prep-select-all" checked style="width:18px; height:18px; accent-color:var(--primary-color);"> Tümünü Seç
+                </label>
+                <button id="btn-prep-replace" class="mini-btn" style="background:transparent; color:var(--secondary-color); border:1px solid var(--secondary-color);"><i class="fa-solid fa-rotate"></i> Seçilmeyenleri Değiştir</button>
+            </div>
+
+            <div id="prep-word-list" style="overflow-y: auto; flex: 1; padding-right: 5px; margin-bottom: 15px;"></div>
+
+            <button id="btn-prep-start" class="action-btn" style="width:100%;"><i class="fa-solid fa-play"></i> Seçili Kelimelerle Başla</button>
+            <button id="btn-prep-close" class="action-btn" style="width:100%; margin-top:10px; background:rgba(128,128,128,0.3);">İptal Et</button>
+        </div>
+    </div>
+
     <div id="word-list-modal" class="modal-overlay hidden">
         <div class="modal-content" style="max-height: 85vh; display: flex; flex-direction: column; width: 95%; max-width: 500px; padding: 20px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
@@ -206,8 +226,7 @@
                 <button id="btn-delete-selected-words" class="mini-btn" style="background:transparent; color:#cf6679; border:1px solid #cf6679;"><i class="fa-solid fa-trash-can"></i> Seçilenleri Sil</button>
             </div>
             
-            <div id="modal-vault-list" style="overflow-y: auto; flex: 1; padding-right: 5px;">
-                </div>
+            <div id="modal-vault-list" style="overflow-y: auto; flex: 1; padding-right: 5px;"></div>
         </div>
     </div>
 
