@@ -9,7 +9,7 @@
     <title>AI Dil Asistanı Pro</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#121212">
-    <link rel="stylesheet" href="style.css?v=6">
+    <link rel="stylesheet" href="style.css?v=7">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
@@ -87,9 +87,14 @@
                 </div>
 
                 <div id="sub-liste" class="sub-section hidden">
-                    <div class="section-header" style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                    <div class="section-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
                         <h3><i class="fa-solid fa-list"></i> Tüm Kelimeler</h3>
-                        <button id="btn-clear-all" class="mini-btn"><i class="fa-solid fa-trash-can"></i> Tümünü Sil</button>
+                        <details class="hide-delete" style="position: relative;">
+                            <summary style="cursor: pointer; color: var(--nav-inactive); list-style: none;"><i class="fa-solid fa-ellipsis-vertical" style="padding: 5px 15px; font-size: 18px;"></i></summary>
+                            <div style="position: absolute; right: 0; top: 100%; background: var(--surface-color); border: 1px solid rgba(128,128,128,0.3); border-radius: 8px; padding: 5px; z-index: 100; box-shadow: 0 4px 15px rgba(0,0,0,0.5); backdrop-filter: blur(10px);">
+                                <button id="btn-clear-all" class="mini-btn" style="white-space: nowrap; background: transparent; color: #cf6679; border: 1px solid #cf6679;"><i class="fa-solid fa-trash-can"></i> Tümünü Sil</button>
+                            </div>
+                        </details>
                     </div>
                     <div id="vault-list"></div>
                 </div>
@@ -119,6 +124,7 @@
                         <option value="Almanca" selected>Almanca</option>
                         <option value="İngilizce">İngilizce</option>
                         <option value="İspanyolca">İspanyolca</option>
+                        <option value="Fransızca">Fransızca</option>
                     </select>
                 </div>
                 
