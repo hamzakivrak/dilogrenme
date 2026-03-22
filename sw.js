@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dil-ai-v3'; 
+const CACHE_NAME = 'dil-ai-v4'; 
 
 self.addEventListener('install', (event) => {
     self.skipWaiting();
