@@ -44,14 +44,13 @@ body { background: var(--bg-gradient); background-size: 300% 300%; animation: gr
 .ai-input-group input { padding: 15px; border-radius: 12px; border: 1px solid rgba(128,128,128,0.3); background: var(--surface-color); color: var(--text-color); font-size: 16px; outline: none; }
 .ai-input-group input:focus { border-color: var(--primary-color); }
 
-/* Genişleyebilir Hikaye Kutuları */
+/* Genişleyebilir Hikaye ve Not Kutuları */
 .story-item { background: var(--surface-color); backdrop-filter: blur(10px); padding: 15px; border-radius: 12px; margin-bottom: 10px; border-left: 4px solid var(--primary-color); box-shadow: 0 4px 10px rgba(0,0,0,0.05); transition: 0.3s; }
 .story-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
 .story-item-title { font-weight: bold; flex: 1; padding-right: 10px; font-size: 16px; transition: 0.3s;}
 .story-content-box { margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(128,128,128,0.2); font-size: 15px; line-height: 1.8; color: var(--text-color); opacity: 0.9; animation: fadeIn 0.3s ease; }
 .story-item:active { transform: scale(0.98); }
 
-/* YENİ: Çalışılmış (Laba Aktarılmış) Hikaye Görünümü */
 .story-item.worked { border-left-color: var(--secondary-color); opacity: 0.85; }
 .story-item.worked .story-item-title { color: var(--secondary-color); }
 
@@ -71,7 +70,7 @@ body { background: var(--bg-gradient); background-size: 300% 300%; animation: gr
 .drawer-header { padding: 15px 20px; background: rgba(0,0,0,0.1); border-radius: 20px 20px 0 0; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(128,128,128,0.2); }
 #close-drawer { background: none; border: none; color: var(--text-color); font-size: 22px; cursor: pointer; }
 .drawer-content { flex: 1; overflow-y: auto; padding: 20px; }
-.chat-msg { padding: 15px; border-radius: 14px; max-width: 90%; line-height: 1.6; font-size: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 15px; }
+.chat-msg { padding: 15px; border-radius: 14px; max-width: 90%; line-height: 1.6; font-size: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
 .chat-ai { background: rgba(128,128,128,0.1); align-self: flex-start; border-bottom-left-radius: 4px; border: 1px solid rgba(128,128,128,0.2); }
 .chat-user { background: var(--primary-color); color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; font-weight: 500; margin-left: auto;}
 .drawer-input-area { position: absolute; bottom: 0; left: 0; width: 100%; padding: 12px; background: var(--surface-color); border-top: 1px solid rgba(128,128,128,0.2); display: flex; gap: 10px; align-items: center; backdrop-filter: blur(10px); }
@@ -87,7 +86,7 @@ body { background: var(--bg-gradient); background-size: 300% 300%; animation: gr
 .ext-details-box { font-size: 13px; color: var(--text-color); opacity: 0.9; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; margin-top: 8px; line-height: 1.6; border-left: 3px solid var(--primary-color); }
 
 .top-sub-nav { display: flex; margin-bottom: 20px; overflow: hidden; padding: 0; }
-.sub-nav-btn { flex: 1; padding: 12px; background: none; border: none; color: var(--text-color); font-weight: bold; cursor: pointer; transition: 0.2s; }
+.sub-nav-btn { flex: 1; padding: 10px; background: none; border: none; color: var(--text-color); font-weight: bold; cursor: pointer; transition: 0.2s; font-size:13px; }
 .sub-nav-btn.active { background: var(--primary-color); color: #fff; }
 
 .flashcard-container { perspective: 1000px; display: flex; justify-content: center; align-items: center; min-height: 440px; margin-bottom: 20px; touch-action: pan-y; }
@@ -134,9 +133,8 @@ body.theme-light .card-face, body.theme-ice .card-face, body.theme-cotton .card-
 
 /* Modal Stilleri */
 .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 2000; backdrop-filter: blur(5px); }
-.modal-overlay.hidden { display: none; }
 .modal-content { background: var(--surface-color); padding: 25px; border-radius: 15px; width: 90%; max-width: 400px; border: 1px solid rgba(128,128,128,0.3); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
 .modal-content h3 { margin-bottom: 15px; color: var(--primary-color); }
-.modal-content p { font-size: 14px; margin-bottom: 15px; color: var(--text-color); }
+.modal-content p { font-size: 14px; margin-bottom: 15px; color: var(--text-color); opacity: 0.9; }
 .modal-content label { display: block; margin-bottom: 12px; font-size: 15px; cursor: pointer; }
 .modal-content input[type="checkbox"] { margin-right: 10px; accent-color: var(--primary-color); transform: scale(1.2); }
