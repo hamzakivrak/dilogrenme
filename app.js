@@ -1,6 +1,10 @@
 document.addEventListener('DOMContentLoaded', () => {
     
-    let API_KEY = localStorage.getItem('gemini_api_key') || "";
+    // --- GLOBAL DEĞİŞKENLER (Çoklu Anahtar İçin Güncellendi) ---
+    let rawKeys = localStorage.getItem('gemini_api_keys') || "";
+    let API_KEYS = rawKeys ? rawKeys.split(',').map(k => k.trim()).filter(k => k !== "") : [];
+    let currentKeyIndex = 0; 
+
     let nativeLang = localStorage.getItem('nativeLang') || "Türkçe";
     let studyLang = localStorage.getItem('studyLang') || "Almanca";
     let vault = JSON.parse(localStorage.getItem('myVault')) || [];
@@ -31,42 +35,67 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById(btn.getAttribute('data-sub')).classList.remove('hidden');
     }));
 
+    // --- AYARLAR KAYDETME (Çoklu Anahtar Desteği) ---
     document.getElementById('btn-save-key').addEventListener('click', () => {
-        const key = document.getElementById('api-key-input').value.trim();
-        if (key) { localStorage.setItem('gemini_api_key', key); API_KEY = key; alert("API Anahtarı kaydedildi!"); }
+        const keysInput = document.getElementById('api-key-input').value.trim();
+        if (keysInput) { 
+            localStorage.setItem('gemini_api_keys', keysInput); 
+            API_KEYS = keysInput.split(',').map(k => k.trim()).filter(k => k !== "");
+            currentKeyIndex = 0; 
+            alert(`${API_KEYS.length} adet API Anahtarı sisteme kaydedildi!`); 
+        }
     });
-    if (API_KEY) document.getElementById('api-key-input').value = API_KEY;
+    if (rawKeys) document.getElementById('api-key-input').value = rawKeys;
 
     document.getElementById('native-language').addEventListener('change', (e) => { nativeLang = e.target.value; localStorage.setItem('nativeLang', nativeLang); });
     document.getElementById('study-language').addEventListener('change', (e) => { studyLang = e.target.value; localStorage.setItem('studyLang', studyLang); });
 
-    // --- SADELEŞTİRİLMİŞ, KUSURSUZ YAPAY ZEKA MOTORU ---
+    // --- YAPAY ZEKA MOTORU (OTOMATİK ANAHTAR DEĞİŞTİRİCİ) ---
     async function callGemini(prompt) {
-        if (!API_KEY) { alert("Lütfen Ayarlar'dan API Key girin!"); return null; }
-        // Her şey için en stabil model!
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
+        if (API_KEYS.length === 0) { alert("Lütfen Ayarlar'dan en az bir API Key girin!"); return null; }
         
-        try {
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-            });
-            const data = await response.json();
+        let attempts = 0; 
+
+        while (attempts < API_KEYS.length) {
+            let activeKey = API_KEYS[currentKeyIndex];
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${activeKey}`;
             
-            if (data.error) {
-                alert("Google API Hatası: " + data.error.message); 
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                });
+                const data = await response.json();
+                
+                if (data.error) {
+                    const errMsg = data.error.message.toLowerCase();
+                    if (errMsg.includes("quota") || data.error.code === 429) {
+                        console.warn(`[UYARI] Anahtar ${currentKeyIndex + 1} kotayı aştı. Diğer anahtara geçiliyor...`);
+                        currentKeyIndex = (currentKeyIndex + 1) % API_KEYS.length;
+                        attempts++;
+                        continue; 
+                    } else {
+                        alert("Google API Hatası: " + data.error.message); 
+                        return null;
+                    }
+                }
+                
+                if (!data.candidates || !data.candidates[0]) {
+                    alert("Yapay zeka yanıt veremedi. Lütfen tekrar dene.");
+                    return null;
+                }
+                
+                return data.candidates[0].content.parts[0].text;
+                
+            } catch (error) {
+                alert("Bağlantı Hatası: Lütfen internetinizi kontrol edin.");
                 return null;
             }
-            if (!data.candidates || !data.candidates[0]) {
-                alert("Yapay zeka yanıt veremedi. Lütfen tekrar dene.");
-                return null;
-            }
-            return data.candidates[0].content.parts[0].text;
-        } catch (error) {
-            alert("Bağlantı Hatası: Lütfen internetinizi kontrol edin.");
-            return null;
         }
+        
+        alert("Sisteme girdiğin tüm API anahtarlarının kotası dolmuş! Lütfen biraz bekle veya yeni anahtar ekle.");
+        return null;
     }
 
     // --- STÜDYO ---
@@ -216,7 +245,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!jsonResponse) return;
 
         try {
-            // API'nin ekleyebileceği gereksiz markdown işaretlerini temizle
             const cleanedResponse = jsonResponse.replace(/```json/g, '').replace(/```/g, '').trim();
             const richData = JSON.parse(cleanedResponse);
             
