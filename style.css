@@ -75,7 +75,7 @@ body { background: var(--bg-gradient); background-size: 300% 300%; animation: gr
 .drawer-input-area input { flex: 1; padding: 14px; border-radius: 25px; border: 1px solid rgba(128,128,128,0.3); background: transparent; color: var(--text-color); font-size: 15px; outline: none; }
 #btn-drawer-send { background: var(--primary-color); color: #fff; border: none; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; }
 
-.extracted-row { display: flex; align-items: flex-start; background: rgba(128,128,128,0.05); padding: 15px; border-radius: 12px; margin-bottom: 10px; border: 1px solid rgba(128,128,128,0.2); }
+.extracted-row { display: flex; align-items: flex-start; background: rgba(128,128,128,0.05); padding: 15px; border-radius: 12px; margin-bottom: 10px; border: 1px solid rgba(128,128,128,0.2); transition:0.2s;}
 .extracted-checkbox { width: 22px; height: 22px; margin-right: 15px; margin-top: 2px; accent-color: var(--primary-color); }
 .extracted-info { flex: 1; display: flex; flex-direction: column; }
 .ext-word { font-weight: bold; font-size: 18px; color: var(--primary-color); }
@@ -106,14 +106,6 @@ body.theme-light .card-face, body.theme-ice .card-face, body.theme-cotton .card-
 .fc-example { font-style: italic; font-size: 15px; color: var(--text-color); background: rgba(0,0,0,0.1); padding: 12px; border-radius: 10px; width: 100%; border: 1px solid rgba(128,128,128,0.1); line-height: 1.4; }
 .fc-hint { position: absolute; bottom: 15px; font-size: 12px; opacity: 0.6; display: flex; flex-direction: column; align-items: center; gap: 5px; width: 100%; }
 .fc-hint span { font-size: 10px; background: rgba(128,128,128,0.2); padding: 4px 10px; border-radius: 10px; }
-
-/* Tinder Butonları */
-.tinder-controls { display: flex; justify-content: center; align-items: center; gap: 20px; padding: 15px 0; }
-.btn-tinder { width: 60px; height: 60px; border-radius: 50%; border: none; font-size: 24px; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 15px rgba(0,0,0,0.2); backdrop-filter: blur(5px); }
-.btn-tinder:active { transform: scale(0.9); }
-.btn-tinder.undo { background: rgba(128,128,128,0.2); color: var(--text-color); border: 1px solid rgba(128,128,128,0.4); width: 45px; height: 45px; font-size: 18px; }
-.btn-tinder.again { background: rgba(207, 102, 121, 0.15); color: #cf6679; border: 2px solid #cf6679; }
-.btn-tinder.know { background: rgba(3, 218, 198, 0.15); color: #03dac6; border: 2px solid #03dac6; }
 
 /* Sınav Kontrolleri */
 .quiz-controls { background: var(--surface-color); padding: 20px; border-radius: 15px; box-shadow: 0 8px 32px rgba(0,0,0,0.1); border: 1px solid rgba(128,128,128,0.2); backdrop-filter: blur(10px); }
