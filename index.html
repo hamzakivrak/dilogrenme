@@ -9,7 +9,7 @@
     <title>AI Dil Asistanı Pro</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#121212">
-    <link rel="stylesheet" href="style.css?v=15">
+    <link rel="stylesheet" href="style.css?v=18">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
@@ -24,7 +24,6 @@
                     <button id="btn-generate-story" class="action-btn" style="flex: 1;">Hikaye Üret</button>
                 </div>
             </div>
-            
             <div class="section-header" style="margin-top: 25px; margin-bottom: 10px;">
                 <h3><i class="fa-solid fa-book-bookmark"></i> Hikaye Kütüphanesi</h3>
             </div>
@@ -35,11 +34,9 @@
 
         <section id="tab-lab" class="tab-section">
             <h2><i class="fa-solid fa-microscope"></i> Laboratuvar</h2>
-            
             <div id="analysis-status" class="status-badge hidden">
                 <i class="fa-solid fa-spinner"></i> <span>Yapay Zeka Metni Analiz Ediyor... Lütfen bekleyiniz.</span>
             </div>
-
             <div id="text-container" class="reading-text">Stüdyo'dan bir hikaye seçin...</div>
 
             <div id="ai-drawer" class="drawer hidden">
@@ -50,7 +47,6 @@
                     </div>
                     <button id="close-drawer" style="align-self: flex-start; padding-top: 5px;"><i class="fa-solid fa-xmark"></i></button>
                 </div>
-                
                 <div id="extraction-container" class="drawer-content hidden" style="padding-bottom: 20px;">
                     <button id="btn-save-extracted" class="action-btn hidden" style="margin-bottom: 15px; width: 100%; box-shadow: 0 4px 15px rgba(0,0,0,0.3);"><i class="fa-solid fa-star"></i> Seçilenleri Havuza At</button>
                     <div id="extract-header-actions" class="hidden" style="margin-bottom: 15px; background: rgba(187, 134, 252, 0.1); padding: 12px; border-radius: 10px; border: 1px solid rgba(187, 134, 252, 0.3);">
@@ -61,7 +57,6 @@
                     </div>
                     <div id="extraction-list"></div>
                 </div>
-
                 <div id="chat-container" class="drawer-content">
                     <div id="ai-response-content" style="display: flex; flex-direction: column; padding-bottom: 60px;"></div>
                     <div class="drawer-input-area">
@@ -73,19 +68,25 @@
         </section>
 
         <section id="tab-vocab" class="tab-section">
-            <div class="top-sub-nav">
-                <button class="sub-nav-btn active" data-sub="sub-kelimeler">Eğitim Kartları</button>
-                <button class="sub-nav-btn" data-sub="sub-liste">Kelime Listesi</button>
-                <button class="sub-nav-btn" data-sub="sub-notlar">Notlar</button>
+            
+            <div class="top-sub-nav" style="display: flex; align-items: center; justify-content: space-between; background: transparent; border: none; box-shadow: none; padding: 0; margin-bottom: 20px; overflow: visible;">
+                <button id="btn-open-word-list" class="action-btn mini" title="Kelime Listesi" style="background: var(--surface-color); color: var(--text-color); border: 1px solid rgba(128,128,128,0.2); height: 44px; width: 44px; border-radius: 12px; display:flex; justify-content:center; align-items:center;"><i class="fa-solid fa-bars"></i></button>
+                
+                <div style="display: flex; flex: 1; margin: 0 10px; background: var(--surface-color); border-radius: 12px; overflow: hidden; border: 1px solid rgba(128,128,128,0.2);">
+                    <button class="sub-nav-btn active" data-sub="sub-kelimeler">Eğitim Kartları</button>
+                    <button class="sub-nav-btn" data-sub="sub-notlar">Notlar</button>
+                </div>
+
+                <button id="btn-open-past-sessions" class="action-btn mini" title="Çalışma Geçmişi" style="background: var(--surface-color); color: var(--text-color); border: 1px solid rgba(128,128,128,0.2); height: 44px; width: 44px; border-radius: 12px; display:flex; justify-content:center; align-items:center;"><i class="fa-solid fa-clock-rotate-left"></i></button>
             </div>
             
             <div class="sub-content-area">
+                
                 <div id="sub-kelimeler" class="sub-section active">
-                    <button id="btn-random-session" class="action-btn" style="margin-bottom: 15px; background: var(--secondary-color); color: #000;"><i class="fa-solid fa-dumbbell"></i> Akıllı Çalışma Oturumu (20 Kelime)</button>
+                    <button id="btn-random-session" class="action-btn" style="width: 100%; margin-bottom: 20px; background: var(--secondary-color); color: #000; font-size:15px; box-shadow: 0 4px 15px rgba(3, 218, 198, 0.3);"><i class="fa-solid fa-dumbbell"></i> Rastgele 20 Kelime İle Çalışmaya Başla</button>
                     
                     <div id="flashcard-container" class="flashcard-container">
-                        <div class="empty-vault-msg">Havuz boş. Önce kelime kaydedin.</div>
-                    </div>
+                        </div>
                     
                     <div class="tinder-controls hidden" id="tinder-controls">
                         <button id="btn-undo-card" class="btn-tinder undo" title="Geri Al"><i class="fa-solid fa-rotate-left"></i></button>
@@ -102,20 +103,11 @@
                             <button id="btn-quiz-check" class="action-btn" style="border-radius: 10px; width: 50px;"><i class="fa-solid fa-paper-plane"></i></button>
                         </div>
                         <div id="quiz-feedback" style="text-align: center; margin-top: 10px; font-weight: bold; font-size: 14px; min-height: 20px;"></div>
+                        <div style="display:flex; justify-content:space-between; margin-top:15px;">
+                            <button id="btn-quiz-prev" class="action-btn mini" style="background: rgba(128,128,128,0.2); color: var(--text-color);"><i class="fa-solid fa-arrow-left"></i> Önceki</button>
+                            <button id="btn-quiz-next" class="action-btn mini" style="background: rgba(128,128,128,0.2); color: var(--text-color);">Sonraki <i class="fa-solid fa-arrow-right"></i></button>
+                        </div>
                     </div>
-                </div>
-
-                <div id="sub-liste" class="sub-section hidden">
-                    <div class="section-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                        <h3><i class="fa-solid fa-list"></i> Tüm Kelimeler</h3>
-                        <details class="hide-delete" style="position: relative;">
-                            <summary style="cursor: pointer; color: var(--nav-inactive); list-style: none;"><i class="fa-solid fa-ellipsis-vertical" style="padding: 5px 15px; font-size: 18px;"></i></summary>
-                            <div style="position: absolute; right: 0; top: 100%; background: var(--surface-color); border: 1px solid rgba(128,128,128,0.3); border-radius: 8px; padding: 5px; z-index: 100; box-shadow: 0 4px 15px rgba(0,0,0,0.5); backdrop-filter: blur(10px);">
-                                <button id="btn-clear-all" class="mini-btn" style="white-space: nowrap; background: transparent; color: #cf6679; border: 1px solid #cf6679;"><i class="fa-solid fa-trash-can"></i> Tümünü Sil</button>
-                            </div>
-                        </details>
-                    </div>
-                    <div id="vault-list"></div>
                 </div>
 
                 <div id="sub-notlar" class="sub-section hidden">
@@ -200,6 +192,34 @@
         <button class="nav-btn" data-target="tab-settings"><i class="fa-solid fa-gear"></i><span>Ayarlar</span></button>
     </nav>
 
+    <div id="word-list-modal" class="modal-overlay hidden">
+        <div class="modal-content" style="max-height: 85vh; display: flex; flex-direction: column; width: 95%; max-width: 500px; padding: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="margin: 0; color:var(--primary-color);"><i class="fa-solid fa-list"></i> Kelime Listesi</h3>
+                <button id="btn-close-word-list" style="background: none; border: none; color: var(--text-color); font-size: 24px; cursor: pointer;"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid rgba(128,128,128,0.2);">
+                <label style="cursor:pointer; display:flex; align-items:center; gap:8px; font-weight:bold; color:var(--text-color); font-size:14px;">
+                    <input type="checkbox" id="chk-select-all-words" style="width:18px; height:18px; accent-color:var(--primary-color);"> Tümünü Seç
+                </label>
+                <button id="btn-delete-selected-words" class="mini-btn" style="background:transparent; color:#cf6679; border:1px solid #cf6679;"><i class="fa-solid fa-trash-can"></i> Seçilenleri Sil</button>
+            </div>
+            
+            <div id="modal-vault-list" style="overflow-y: auto; flex: 1; padding-right: 5px;">
+                </div>
+        </div>
+    </div>
+
+    <div id="past-sessions-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3><i class="fa-solid fa-clock-rotate-left"></i> Çalışma Geçmişi</h3>
+            <p>Daha önce çalıştığınız kelime gruplarını aralıklı tekrar için yeniden çalışın:</p>
+            <div id="past-sessions-list" style="max-height: 40vh; overflow-y: auto; margin-bottom: 15px; padding-right:5px;"></div>
+            <button id="btn-close-past-sessions" class="action-btn" style="width: 100%; background:rgba(128,128,128,0.5);">Kapat</button>
+        </div>
+    </div>
+
     <div id="delete-modal" class="modal-overlay hidden">
         <div class="modal-content">
             <h3><i class="fa-solid fa-triangle-exclamation"></i> Veri Silme Yöneticisi</h3>
@@ -209,6 +229,7 @@
             <label><input type="checkbox" id="chk-del-stories"> <strong>Hikaye Kütüphanesi</strong> (Tüm kayıtlı metinler)</label>
             <label><input type="checkbox" id="chk-del-vault"> <strong>Kelime Havuzu</strong> (Tüm eğitim kartları)</label>
             <label><input type="checkbox" id="chk-del-notes"> <strong>Gramer Notları</strong> (Kendi kaydettiğin notlar)</label>
+            <label><input type="checkbox" id="chk-del-sessions"> <strong>Çalışma Geçmişi</strong> (Kaydedilen oturumlar)</label>
             <div style="display:flex; gap:10px; margin-top:25px;">
                 <button id="btn-cancel-del" class="action-btn" style="background:rgba(128,128,128,0.5); flex:1;">İptal</button>
                 <button id="btn-confirm-del" class="action-btn" style="background:#cf6679; flex:1;">Seçilenleri Sil</button>
