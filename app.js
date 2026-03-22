@@ -25,10 +25,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentCardIndex = 0;
     
     let aiCache = JSON.parse(localStorage.getItem('dil_ai_cache')) || {}; 
-    let chatHistoryVault = JSON.parse(localStorage.getItem('dil_chat_history')) || {}; // SOHBET GEÇMİŞİ KASASI
+    let chatHistoryVault = JSON.parse(localStorage.getItem('dil_chat_history')) || {}; 
 
     let currentDrawerContext = ""; 
-    let currentDrawerAction = ""; // Chat History için action takibi
+    let currentDrawerAction = ""; 
     let currentStoryAnalysisData = {}; 
 
     if (document.getElementById('native-language')) document.getElementById('native-language').value = nativeLang;
@@ -75,7 +75,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('native-language').addEventListener('change', (e) => { nativeLang = e.target.value; localStorage.setItem('nativeLang', nativeLang); });
     document.getElementById('study-language').addEventListener('change', (e) => { studyLang = e.target.value; localStorage.setItem('studyLang', studyLang); });
     
-    // Gelişmiş Silme Modalı Açılış Kapanış
     document.getElementById('btn-open-delete-modal').addEventListener('click', () => {
         document.getElementById('delete-modal').classList.remove('hidden');
     });
@@ -102,7 +101,6 @@ document.addEventListener('DOMContentLoaded', () => {
             alert("Seçilen veriler cihazınızdan başarıyla silindi!");
             document.getElementById('delete-modal').classList.add('hidden');
             
-            // Seçimleri temizle
             document.getElementById('chk-del-cache').checked = false;
             document.getElementById('chk-del-chat').checked = false;
             document.getElementById('chk-del-stories').checked = false;
@@ -222,14 +220,13 @@ document.addEventListener('DOMContentLoaded', () => {
     window.showPrompt = (promptText) => { alert("Bu hikaye şu komutla oluşturuldu:\n\n" + promptText); };
     window.deleteStory = (id) => { if(confirm("Hikayeyi silmek istediğine emin misin?")) { storyVault = storyVault.filter(s => s.id !== id); localStorage.setItem('myStories', JSON.stringify(storyVault)); renderStoryList(); } };
 
-    // --- LAB: CÜMLE ANALİZİ VE TÜM HİKAYE AYIKLAMA ---
+    // --- LAB: CÜMLE ANALİZİ ---
     async function prepareLabText(text, isRestore = false) {
         sessionStorage.setItem('activeLabText', text);
         currentStoryAnalysisData = {}; 
         const labContainer = document.getElementById('text-container');
         labContainer.innerHTML = '';
         
-        // YENİ: En tepede "Tüm Hikayedeki Kelimeleri Ayıkla" butonu
         const topActionsDiv = document.createElement('div');
         topActionsDiv.style.marginBottom = "25px";
         topActionsDiv.style.textAlign = "center";
@@ -317,14 +314,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const savedLabText = sessionStorage.getItem('activeLabText');
     if (savedLabText) prepareLabText(savedLabText, true); 
 
-    // --- AI ÇEKMECESİ VE GERİ TUŞU (HISTORY API) KONTROLÜ ---
+    // --- AI ÇEKMECESİ VE GERİ TUŞU KONTROLÜ ---
     const drawer = document.getElementById('ai-drawer');
     const chatContainer = document.getElementById('chat-container');
     const extractionContainer = document.getElementById('extraction-container');
     const chatContent = document.getElementById('ai-response-content');
     const extractionList = document.getElementById('extraction-list');
     
-    // Geri Tuşu Algılayıcısı (Hikaye ve Çekmece kapatma)
     window.addEventListener('popstate', (e) => {
         if (!drawer.classList.contains('hidden')) {
             drawer.classList.add('hidden'); 
@@ -335,7 +331,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function openDrawer(sentence, action) {
         currentDrawerContext = sentence;
-        currentDrawerAction = action; // Sohbetleri ayırmak için action'u kaydediyoruz
+        currentDrawerAction = action; 
         
         if (drawer.classList.contains('hidden')) {
             history.pushState({ drawerOpen: true }, "");
@@ -400,11 +396,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 chatContent.innerHTML = ''; addChatMessage(response || "Hata oluştu.", 'ai');
             }
 
-            // SOHBET GEÇMİŞİNİ (VARSA) ALTINA YÜKLE
             if (chatHistoryVault[sentence] && chatHistoryVault[sentence][action]) {
                 chatHistoryVault[sentence][action].forEach(chat => {
-                    addChatMessage(chat.q, 'user');
-                    addChatMessage(chat.a, 'ai');
+                    addChatMessage(chat.q, 'user'); addChatMessage(chat.a, 'ai');
                 });
             }
         }
@@ -425,7 +419,6 @@ document.addEventListener('DOMContentLoaded', () => {
             
             words.forEach(item => {
                 const row = document.createElement('div'); row.className = 'extracted-row';
-                // contextText tüm metinse example çok uzun olabilir, onu kontrol ediyoruz
                 const safeExample = item.example || (contextText.length > 100 ? "Metinden örnek" : contextText);
 
                 const safeData = encodeURIComponent(JSON.stringify({
@@ -479,7 +472,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const answer = await callGemini(null, prompt, false); 
         loadingDiv.remove(); addChatMessage(answer || "Yanıt alınamadı.", 'ai');
 
-        // SOHBET GEÇMİŞİNİ KAYDET
         if (answer) {
             if (!chatHistoryVault[currentDrawerContext]) chatHistoryVault[currentDrawerContext] = {};
             if (!chatHistoryVault[currentDrawerContext][currentDrawerAction]) chatHistoryVault[currentDrawerContext][currentDrawerAction] = [];
@@ -495,7 +487,7 @@ document.addEventListener('DOMContentLoaded', () => {
         chatContent.appendChild(msgDiv); chatContent.scrollTop = chatContent.scrollHeight;
     }
 
-    // --- FLASHCARD & LİSTE (SWIPE ENTEGRASYONLU) ---
+    // --- FLASHCARD & LİSTE ---
     document.getElementById('btn-random-session').addEventListener('click', () => {
         if (vault.length === 0) { alert("Havuz boş!"); return; }
         let shuffled = [...vault].sort(() => 0.5 - Math.random());
@@ -579,10 +571,25 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // --- TÜM VERİLERİ (FULL BACKUP) İNDİR VE YÜKLE ---
     document.getElementById('btn-export-vault').addEventListener('click', () => {
-        if(vault.length === 0) { alert("Havuz boş!"); return; }
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(vault));
-        const dlAnchorElem = document.createElement('a'); dlAnchorElem.setAttribute("href", dataStr); dlAnchorElem.setAttribute("download", "dil_ai_yedek.json"); dlAnchorElem.click();
+        const fullBackup = {
+            vault: vault,
+            storyVault: storyVault,
+            aiCache: aiCache,
+            chatHistoryVault: chatHistoryVault,
+            settings: {
+                apiKeys: localStorage.getItem('gemini_api_keys') || "",
+                nativeLang: nativeLang,
+                studyLang: studyLang,
+                theme: localStorage.getItem('dil_theme_class') || ""
+            }
+        };
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(fullBackup));
+        const dlAnchorElem = document.createElement('a'); 
+        dlAnchorElem.setAttribute("href", dataStr); 
+        dlAnchorElem.setAttribute("download", "dil_ai_tam_yedek.json"); 
+        dlAnchorElem.click();
     });
 
     document.getElementById('import-vault').addEventListener('change', (event) => {
@@ -591,11 +598,33 @@ document.addEventListener('DOMContentLoaded', () => {
         reader.onload = (e) => {
             try {
                 const importedData = JSON.parse(e.target.result);
-                if(Array.isArray(importedData)) {
+                
+                if (Array.isArray(importedData)) {
+                    // Sadece eski tip kelime yedeği
                     vault = importedData; sessionVault = [...vault]; localStorage.setItem('myVault', JSON.stringify(vault));
-                    currentCardIndex = 0; alert("Yedek yüklendi!"); renderVaultList(); renderFlashcard();
+                    currentCardIndex = 0; alert("Eski tip kelime yedeği yüklendi!"); renderVaultList(); renderFlashcard();
+                } else if (importedData.vault !== undefined) {
+                    // Yeni tip TAM YEDEK
+                    if(confirm("Bu işlem mevcut tüm hikaye, kelime ve sohbetlerini silecek ve yedekteki verileri yükleyecek. Emin misin?")) {
+                        localStorage.setItem('myVault', JSON.stringify(importedData.vault || []));
+                        localStorage.setItem('myStories', JSON.stringify(importedData.storyVault || []));
+                        localStorage.setItem('dil_ai_cache', JSON.stringify(importedData.aiCache || {}));
+                        localStorage.setItem('dil_chat_history', JSON.stringify(importedData.chatHistoryVault || {}));
+                        
+                        if (importedData.settings) {
+                            localStorage.setItem('gemini_api_keys', importedData.settings.apiKeys || "");
+                            localStorage.setItem('nativeLang', importedData.settings.nativeLang || "Türkçe");
+                            localStorage.setItem('studyLang', importedData.settings.studyLang || "Almanca");
+                            localStorage.setItem('dil_theme_class', importedData.settings.theme || "");
+                        }
+                        
+                        alert("Tüm veriler başarıyla geri yüklendi! Uygulama yenileniyor...");
+                        location.reload(); 
+                    }
+                } else {
+                    alert("Geçersiz yedek dosyası!");
                 }
-            } catch(err) { alert("Hata."); }
+            } catch(err) { alert("Dosya okuma hatası."); }
         };
         reader.readAsText(file);
     });
