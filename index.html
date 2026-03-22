@@ -9,7 +9,7 @@
     <title>AI Dil Asistanı Pro</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#121212">
-    <link rel="stylesheet" href="style.css?v=7">
+    <link rel="stylesheet" href="style.css?v=9">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
@@ -152,8 +152,8 @@
                 <details class="setting-item advanced-settings" style="flex-direction: column; align-items: flex-start; gap: 10px;">
                     <summary><strong><i class="fa-solid fa-triangle-exclamation"></i> Gelişmiş Ayarlar</strong></summary>
                     <div style="width: 100%; display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 10px; border-top: 1px dashed rgba(128,128,128,0.3);">
-                        <div class="setting-info"><strong>AI Hafızası (Önbellek)</strong><span>Cümle analizlerini sıfırla</span></div>
-                        <button id="btn-clear-cache" class="action-btn mini" style="background:#cf6679;">Temizle</button>
+                        <div class="setting-info"><strong>Gelişmiş Veri Yöneticisi</strong><span>Kayıtları seçerek sil</span></div>
+                        <button id="btn-open-delete-modal" class="action-btn mini" style="background:#cf6679;">Yönet</button>
                     </div>
                 </details>
             </div>
@@ -166,6 +166,21 @@
         <button class="nav-btn" data-target="tab-vocab"><i class="fa-solid fa-star"></i><span>Havuz</span></button>
         <button class="nav-btn" data-target="tab-settings"><i class="fa-solid fa-gear"></i><span>Ayarlar</span></button>
     </nav>
+
+    <div id="delete-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3><i class="fa-solid fa-triangle-exclamation"></i> Veri Silme Yöneticisi</h3>
+            <p>Hangi verilerin tamamen silinmesini istediğini seç:</p>
+            <label><input type="checkbox" id="chk-del-cache"> <strong>AI Önbelleği</strong> (Hızlı analiz verileri)</label>
+            <label><input type="checkbox" id="chk-del-chat"> <strong>Sohbet Geçmişi</strong> (Yapay zekaya sorulan sorular)</label>
+            <label><input type="checkbox" id="chk-del-stories"> <strong>Hikaye Kütüphanesi</strong> (Tüm kayıtlı metinler)</label>
+            <label><input type="checkbox" id="chk-del-vault"> <strong>Kelime Havuzu</strong> (Tüm eğitim kartları)</label>
+            <div style="display:flex; gap:10px; margin-top:25px;">
+                <button id="btn-cancel-del" class="action-btn" style="background:rgba(128,128,128,0.5); flex:1;">İptal</button>
+                <button id="btn-confirm-del" class="action-btn" style="background:#cf6679; flex:1;">Seçilenleri Sil</button>
+            </div>
+        </div>
+    </div>
 
     <script src="app.js"></script>
     <script>
