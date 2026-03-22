@@ -18,34 +18,36 @@
         <section id="tab-studio" class="tab-section active">
             <h2><i class="fa-solid fa-pen-nib"></i> Stüdyo</h2>
             <div class="ai-input-group">
-                <input type="text" id="story-prompt" placeholder="Örn: Ormanda kaybolan bir çocuk hakkında...">
-                <button id="btn-generate-story" class="action-btn">Metin Oluştur</button>
+                <input type="text" id="story-prompt" placeholder="Örn: Ormanda kaybolan bir çocuk...">
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <input type="number" id="story-count" placeholder="Adet" value="1" min="1" max="10" style="width: 80px;">
+                    <button id="btn-generate-story" class="action-btn" style="flex: 1;">Hikaye Üret</button>
+                </div>
             </div>
-            <div id="generated-story-display" class="reading-text" style="display:none; margin-top:20px;"></div>
+            <div id="story-list-container" style="margin-top: 20px;"></div>
         </section>
 
         <section id="tab-lab" class="tab-section">
             <h2><i class="fa-solid fa-microscope"></i> Laboratuvar</h2>
-            <div id="text-container" class="reading-text">Stüdyo'da bir metin oluşturun...</div>
-
-            <div id="word-bubble">
-                <div class="bubble-content"><span id="bubble-translation">...</span></div>
-                <div class="bubble-actions">
-                    <button id="btn-speak"><i class="fa-solid fa-volume-high"></i></button>
-                    <button id="btn-save"><i class="fa-solid fa-star"></i></button>
-                </div>
-                <div class="bubble-arrow"></div>
-            </div>
+            <div id="text-container" class="reading-text">Stüdyo'dan bir hikaye seçin...</div>
 
             <div id="ai-drawer" class="drawer hidden">
                 <div class="drawer-header">
                     <span id="drawer-title">AI Asistan</span>
                     <button id="close-drawer"><i class="fa-solid fa-xmark"></i></button>
                 </div>
-                <div id="ai-response-content" class="drawer-content"></div>
-                <div class="drawer-input-area">
-                    <input type="text" id="drawer-chat-input" placeholder="Bu cümle hakkında detay sor...">
-                    <button id="btn-drawer-send"><i class="fa-solid fa-paper-plane"></i></button>
+                
+                <div id="extraction-container" class="drawer-content hidden" style="padding-bottom: 20px;">
+                    <div id="extraction-list"></div>
+                    <button id="btn-save-extracted" class="action-btn" style="margin-top: 15px;"><i class="fa-solid fa-star"></i> Seçilenleri Havuza At</button>
+                </div>
+
+                <div id="chat-container" class="drawer-content">
+                    <div id="ai-response-content" style="display: flex; flex-direction: column; gap: 12px; padding-bottom: 60px;"></div>
+                    <div class="drawer-input-area">
+                        <input type="text" id="drawer-chat-input" placeholder="Detay sor...">
+                        <button id="btn-drawer-send"><i class="fa-solid fa-paper-plane"></i></button>
+                    </div>
                 </div>
             </div>
         </section>
@@ -58,13 +60,15 @@
             
             <div class="sub-content-area">
                 <div id="sub-kelimeler" class="sub-section active">
+                    <button id="btn-random-session" class="action-btn" style="margin-bottom: 15px; background: var(--secondary-color); color: #000;"><i class="fa-solid fa-shuffle"></i> Rastgele 20 Kart İle Çalış</button>
+                    
                     <div id="flashcard-container" class="flashcard-container">
-                        <div class="empty-vault-msg">Havuz boş. Önce Laboratuvardan kelime kaydedin.</div>
+                        <div class="empty-vault-msg">Havuz boş. Önce kelime kaydedin.</div>
                     </div>
                     <div class="flashcard-controls hidden" id="flashcard-controls">
-                        <button id="btn-prev-card" class="action-btn mini"><i class="fa-solid fa-arrow-left"></i> Önceki</button>
+                        <button id="btn-prev-card" class="action-btn mini"><i class="fa-solid fa-arrow-left"></i></button>
                         <span id="card-counter">1 / 1</span>
-                        <button id="btn-next-card" class="action-btn mini">Sonraki <i class="fa-solid fa-arrow-right"></i></button>
+                        <button id="btn-next-card" class="action-btn mini"><i class="fa-solid fa-arrow-right"></i></button>
                     </div>
                 </div>
 
@@ -105,10 +109,10 @@
                 </div>
                 
                 <div class="setting-item backup-box">
-                    <div class="setting-info"><strong>Kelime Havuzu Yedeği</strong><span>Verilerini indir veya yükle</span></div>
+                    <div class="setting-info"><strong>Kelime Havuzu Yedeği</strong><span>Verilerini indir/yükle</span></div>
                     <div class="backup-actions">
-                        <button id="btn-export-vault" class="action-btn mini"><i class="fa-solid fa-download"></i> İndir</button>
-                        <label for="import-vault" class="action-btn mini file-label"><i class="fa-solid fa-upload"></i> Yükle</label>
+                        <button id="btn-export-vault" class="action-btn mini"><i class="fa-solid fa-download"></i></button>
+                        <label for="import-vault" class="action-btn mini file-label"><i class="fa-solid fa-upload"></i></label>
                         <input type="file" id="import-vault" accept=".json" style="display:none;">
                     </div>
                 </div>
@@ -116,6 +120,11 @@
                 <div class="setting-item">
                     <div class="setting-info"><strong>Görünüm</strong><span>Koyu / Açık Tema</span></div>
                     <button id="theme-toggle" class="action-btn mini">Değiştir</button>
+                </div>
+                
+                <div class="setting-item">
+                    <div class="setting-info"><strong>AI Hafızası (Önbellek)</strong><span>Sorguları sıfırla</span></div>
+                    <button id="btn-clear-cache" class="action-btn mini" style="background:#cf6679;">Temizle</button>
                 </div>
             </div>
         </section>
