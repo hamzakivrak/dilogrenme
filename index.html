@@ -9,7 +9,6 @@
     <title>AI Dil Asistanı Pro</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#121212">
-    
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -53,22 +52,28 @@
 
         <section id="tab-vocab" class="tab-section">
             <div class="top-sub-nav">
-                <button class="sub-nav-btn active" data-sub="sub-kelimeler">Kelimeler</button>
-                <button class="sub-nav-btn" data-sub="sub-gramer">Gramer</button>
+                <button class="sub-nav-btn active" data-sub="sub-kelimeler">Eğitim Kartları</button>
+                <button class="sub-nav-btn" data-sub="sub-liste" id="btn-toggle-list">Kelime Listesi</button>
             </div>
+            
             <div class="sub-content-area">
                 <div id="sub-kelimeler" class="sub-section active">
+                    <div id="flashcard-container" class="flashcard-container">
+                        <div class="empty-vault-msg">Havuz boş. Önce Laboratuvardan kelime kaydedin.</div>
+                    </div>
+                    <div class="flashcard-controls hidden" id="flashcard-controls">
+                        <button id="btn-prev-card" class="action-btn mini"><i class="fa-solid fa-arrow-left"></i> Önceki</button>
+                        <span id="card-counter">1 / 1</span>
+                        <button id="btn-next-card" class="action-btn mini">Sonraki <i class="fa-solid fa-arrow-right"></i></button>
+                    </div>
+                </div>
+
+                <div id="sub-liste" class="sub-section hidden">
                     <div class="section-header">
-                        <h3><i class="fa-solid fa-layer-group"></i> Kelime Havuzu</h3>
-                        <div class="bulk-actions">
-                            <button id="btn-delete-selected" class="mini-btn hidden"><i class="fa-solid fa-check-double"></i></button>
-                            <button id="btn-clear-all" class="mini-btn"><i class="fa-solid fa-trash-can"></i></button>
-                        </div>
+                        <h3><i class="fa-solid fa-list"></i> Tüm Kelimeler</h3>
+                        <button id="btn-clear-all" class="mini-btn"><i class="fa-solid fa-trash-can"></i> Tümünü Sil</button>
                     </div>
                     <div id="vault-list"></div>
-                </div>
-                <div id="sub-gramer" class="sub-section">
-                    <h3>Gramer Notları (Çok Yakında)</h3>
                 </div>
             </div>
         </section>
@@ -98,6 +103,15 @@
                         <option value="İspanyolca">İspanyolca</option>
                     </select>
                 </div>
+                
+                <div class="setting-item backup-box">
+                    <div class="setting-info"><strong>Kelime Havuzu Yedeği</strong><span>Verilerini indir veya yükle</span></div>
+                    <div class="backup-actions">
+                        <button id="btn-export-vault" class="action-btn mini"><i class="fa-solid fa-download"></i> İndir</button>
+                        <label for="import-vault" class="action-btn mini file-label"><i class="fa-solid fa-upload"></i> Yükle</label>
+                        <input type="file" id="import-vault" accept=".json" style="display:none;">
+                    </div>
+                </div>
 
                 <div class="setting-item">
                     <div class="setting-info"><strong>Görünüm</strong><span>Koyu / Açık Tema</span></div>
@@ -115,12 +129,9 @@
     </nav>
 
     <script src="app.js"></script>
-    
     <script>
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('./sw.js');
-        });
+        window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js'); });
       }
     </script>
 </body>
