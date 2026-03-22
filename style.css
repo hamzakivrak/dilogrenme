@@ -1,95 +1,73 @@
-/* --- TEMA VE RENK DEĞİŞKENLERİ --- */
-:root {
-    --bg-color: #121212; --surface-color: #1e1e1e; --text-color: #e0e0e0;
-    --primary-color: #bb86fc; --secondary-color: #03dac6;
-    --nav-bg: #1f1f1f; --nav-active: #bb86fc; --nav-inactive: #888888;
-}
+:root { --bg-color: #121212; --surface-color: #1e1e1e; --text-color: #e0e0e0; --primary-color: #bb86fc; --secondary-color: #03dac6; --nav-bg: #1f1f1f; --nav-active: #bb86fc; --nav-inactive: #888888; }
+body.light-theme { --bg-color: #f5f5f5; --surface-color: #ffffff; --text-color: #333333; --primary-color: #6200ee; --secondary-color: #018786; --nav-bg: #ffffff; --nav-active: #6200ee; }
 
-body.light-theme {
-    --bg-color: #f5f5f5; --surface-color: #ffffff; --text-color: #333333;
-    --primary-color: #6200ee; --secondary-color: #018786;
-    --nav-bg: #ffffff; --nav-active: #6200ee;
-}
-
-/* --- GENEL SIFIRLAMA VE YAPI --- */
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, sans-serif; }
-body { 
-    background: var(--bg-color); 
-    color: var(--text-color); 
-    padding-bottom: 80px; 
-    transition: 0.3s; 
-    overscroll-behavior-y: none; /* SORUN 1 ÇÖZÜMÜ: Yukarı çekince yenilenmeyi engeller */
-}
+body { background: var(--bg-color); color: var(--text-color); padding-bottom: 80px; transition: 0.3s; overscroll-behavior-y: none; }
 
-/* --- ANA SEKMELER (TABS) --- */
 .tab-section { display: none; padding: 20px; animation: fadeIn 0.3s ease; }
 .tab-section.active { display: block; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-/* --- ALT NAVİGASYON --- */
 .bottom-nav { position: fixed; bottom: 0; width: 100%; height: 65px; background: var(--nav-bg); display: flex; justify-content: space-around; align-items: center; z-index: 1000; box-shadow: 0 -2px 10px rgba(0,0,0,0.3); }
 .nav-btn { background: none; border: none; color: var(--nav-inactive); display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; flex: 1; height: 100%; }
 .nav-btn.active { color: var(--nav-active); }
 .nav-btn i { font-size: 20px; margin-bottom: 4px; }
 .nav-btn span { font-size: 10px; }
 
-/* --- STÜDYO VE OKUMA ALANI --- */
 .reading-text { font-size: 18px; line-height: 2.2; padding: 20px; background: var(--surface-color); border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
 .ai-input-group { display: flex; flex-direction: column; gap: 10px; margin-top: 15px; }
-.ai-input-group input { padding: 15px; border-radius: 12px; border: 1px solid #444; background: #1e1e1e; color: #fff; font-size: 16px; }
+.ai-input-group input { padding: 15px; border-radius: 12px; border: 1px solid #444; background: #1e1e1e; color: #fff; font-size: 16px; outline: none; }
+.ai-input-group input:focus { border-color: var(--primary-color); }
 
-/* --- LABORATUVAR: CÜMLELER VE TIKLANABİLİR KELİMELER --- */
-.sentence-block { display: block; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid rgba(187, 134, 252, 0.2); }
-.clickable-word { cursor: pointer; display: inline-block; padding: 2px 4px; margin: 1px; border-radius: 4px; transition: 0.2s; }
-.clickable-word:active { background: rgba(187, 134, 252, 0.4); }
+/* Yeni Hikaye Listesi */
+.story-item { background: #2c2c2c; padding: 15px; border-radius: 12px; margin-bottom: 10px; cursor: pointer; border-left: 4px solid var(--primary-color); font-weight: bold; transition: 0.2s; }
+.story-item:active { transform: scale(0.98); background: #3c3c3c; }
 
-.sentence-actions { display: block; margin-top: 10px; text-align: right; }
-.btn-translate, .btn-grammar { background: #333; color: var(--primary-color); border: none; padding: 8px 12px; border-radius: 8px; margin-left: 8px; cursor: pointer; font-size: 13px; font-weight: bold; }
+/* Cümle Blokları (Kelime tıklamaları iptal edildi) */
+.sentence-block { display: block; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid rgba(187, 134, 252, 0.2); }
+.sentence-text { display: block; margin-bottom: 10px; }
+.sentence-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+.btn-action-sm { background: #333; color: var(--primary-color); border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: bold; flex: 1; text-align: center; }
+.btn-action-sm.extract { background: var(--primary-color); color: #fff; }
 
-/* --- KELİME ÇEVİRİ BALONCUĞU --- */
-#word-bubble { position: absolute; background: #2c2c2c; color: #fff; padding: 12px; border-radius: 12px; display: none; flex-direction: column; transform: translate(-50%, -110%); z-index: 2000; min-width: 170px; box-shadow: 0 5px 20px rgba(0,0,0,0.5); border: 1px solid var(--primary-color); }
-#bubble-translation { font-weight: bold; font-size: 16px; text-align: center; display: block; margin-bottom: 5px; }
-.bubble-actions { display: flex; justify-content: space-around; border-top: 1px solid #444; padding-top: 10px; margin-top: 5px; }
-.bubble-actions button { background: none; border: none; color: #e0e0e0; font-size: 18px; cursor: pointer; }
-.bubble-arrow { position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 8px solid #2c2c2c; }
-
-/* --- AI ETKİLEŞİMLİ ÇEKMECE (SOHBET) --- */
-.drawer { position: fixed; bottom: 65px; left: 0; width: 100%; height: 65%; background: #1e1e1e; border-top: 3px solid var(--primary-color); border-radius: 20px 20px 0 0; z-index: 1500; transition: 0.3s; display: flex; flex-direction: column; box-shadow: 0 -10px 25px rgba(0,0,0,0.5); }
+/* Çekmece */
+.drawer { position: fixed; bottom: 65px; left: 0; width: 100%; height: 75%; background: #1e1e1e; border-top: 3px solid var(--primary-color); border-radius: 20px 20px 0 0; z-index: 1500; transition: 0.3s; display: flex; flex-direction: column; box-shadow: 0 -10px 25px rgba(0,0,0,0.5); }
 .drawer.hidden { display: none; transform: translateY(110%); }
 .drawer-header { padding: 15px 20px; background: #2c2c2c; border-radius: 20px 20px 0 0; display: flex; justify-content: space-between; align-items: center; font-weight: bold; font-size: 16px; border-bottom: 1px solid #333; }
 #close-drawer { background: none; border: none; color: #fff; font-size: 20px; cursor: pointer; }
-.drawer-content { padding: 20px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding-bottom: 80px; }
+.drawer-content { flex: 1; overflow-y: auto; padding: 20px; }
 .chat-msg { padding: 12px 16px; border-radius: 14px; max-width: 85%; line-height: 1.5; font-size: 15px; }
 .chat-ai { background: #2c2c2c; align-self: flex-start; border-bottom-left-radius: 4px; color: #e0e0e0; border: 1px solid #333; }
-.chat-user { background: var(--primary-color); color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; font-weight: 500; }
+.chat-user { background: var(--primary-color); color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; font-weight: 500; margin-left: auto;}
 .drawer-input-area { position: absolute; bottom: 0; left: 0; width: 100%; padding: 12px; background: #1e1e1e; border-top: 1px solid #333; display: flex; gap: 10px; align-items: center; }
 .drawer-input-area input { flex: 1; padding: 14px; border-radius: 25px; border: 1px solid #444; background: #121212; color: #fff; font-size: 15px; outline: none; }
 #btn-drawer-send { background: var(--primary-color); color: #fff; border: none; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; }
 
-/* --- FLASHCARD 3D SİSTEMİ --- */
+/* Yeni: Kelime Ayıklama Listesi */
+.extracted-row { display: flex; align-items: center; background: #2c2c2c; padding: 12px; border-radius: 10px; margin-bottom: 8px; border: 1px solid #444; }
+.extracted-checkbox { width: 22px; height: 22px; margin-right: 15px; accent-color: var(--primary-color); }
+.extracted-info { flex: 1; display: flex; flex-direction: column; }
+.ext-word { font-weight: bold; font-size: 16px; color: var(--primary-color); }
+.ext-trans { font-size: 14px; color: #ddd; }
+.ext-details { font-size: 12px; color: #888; font-style: italic; margin-top: 4px; }
+
+/* Flashcards & Ayarlar (Mevcut) */
 .top-sub-nav { display: flex; background: var(--surface-color); border-radius: 10px; margin-bottom: 20px; overflow: hidden; border: 1px solid rgba(128,128,128,0.2); }
 .sub-nav-btn { flex: 1; padding: 12px; background: none; border: none; color: var(--text-color); font-weight: bold; cursor: pointer; }
 .sub-nav-btn.active { background: var(--primary-color); color: #fff; }
-
 .flashcard-container { perspective: 1000px; display: flex; justify-content: center; align-items: center; min-height: 350px; margin-bottom: 20px; }
 .flashcard { width: 100%; max-width: 320px; height: 350px; position: relative; transition: transform 0.6s; transform-style: preserve-3d; cursor: pointer; }
 .flashcard.flipped { transform: rotateY(180deg); }
-
 .card-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 20px; padding: 25px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
 .card-front { background: linear-gradient(145deg, var(--surface-color), #2a2a2a); border: 2px solid var(--primary-color); }
 .card-back { background: linear-gradient(145deg, #2a2a2a, var(--surface-color)); border: 2px solid var(--secondary-color); transform: rotateY(180deg); }
-
 .fc-word { font-size: 28px; font-weight: bold; color: var(--primary-color); margin-bottom: 10px; }
 .card-back .fc-word { color: var(--secondary-color); }
 .fc-type { font-size: 14px; color: #aaa; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px; border-bottom: 1px solid #444; padding-bottom: 5px; }
 .fc-example { font-style: italic; font-size: 16px; color: #ddd; margin-top: 15px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 10px; width: 100%; }
 .fc-hint { position: absolute; bottom: 15px; font-size: 12px; color: #666; }
-
 .flashcard-controls { display: flex; justify-content: space-between; align-items: center; background: var(--surface-color); padding: 10px 20px; border-radius: 15px; }
-#card-counter { font-weight: bold; font-size: 16px; }
 
-/* Liste ve Ayarlar */
-.section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
 .word-card { background: var(--surface-color); padding: 15px; border-radius: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border-left: 5px solid var(--primary-color); }
 .settings-card { background: var(--surface-color); border-radius: 15px; padding: 10px 20px; }
 .setting-item { display: flex; justify-content: space-between; align-items: center; padding: 18px 0; border-bottom: 1px solid rgba(128,128,128,0.1); }
@@ -97,10 +75,8 @@ body {
 .setting-info span { font-size: 12px; color: var(--nav-inactive); }
 .api-box { flex-direction: column !important; align-items: flex-start !important; gap: 10px; }
 .api-box input { width: 100%; padding: 12px; border-radius: 8px; background: #121212; border: 1px solid #444; color: #fff; }
-.backup-actions { display: flex; gap: 10px; }
-.action-btn { background: var(--primary-color); color: #fff; border: none; padding: 12px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 15px; width: 100%; transition: 0.2s; }
+.action-btn { background: var(--primary-color); color: #fff; border: none; padding: 12px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 15px; transition: 0.2s; }
 .action-btn.mini { width: auto; padding: 8px 15px; font-size: 13px; }
-.file-label { display: inline-block; text-align: center; }
-.mini-btn { background: #cf6679; color: #fff; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; transition: 0.2s; }
+.mini-btn { background: #cf6679; color: #fff; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; margin-left: 5px;}
 .styled-select { padding: 10px; border-radius: 8px; background: var(--bg-color); color: var(--text-color); border: 1px solid #444; outline: none; }
 .hidden { display: none !important; }
