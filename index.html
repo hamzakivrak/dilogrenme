@@ -9,7 +9,7 @@
     <title>AI Dil Asistanı Pro</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#121212">
-    <link rel="stylesheet" href="style.css?v=14">
+    <link rel="stylesheet" href="style.css?v=15">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
@@ -53,14 +53,12 @@
                 
                 <div id="extraction-container" class="drawer-content hidden" style="padding-bottom: 20px;">
                     <button id="btn-save-extracted" class="action-btn hidden" style="margin-bottom: 15px; width: 100%; box-shadow: 0 4px 15px rgba(0,0,0,0.3);"><i class="fa-solid fa-star"></i> Seçilenleri Havuza At</button>
-                    
                     <div id="extract-header-actions" class="hidden" style="margin-bottom: 15px; background: rgba(187, 134, 252, 0.1); padding: 12px; border-radius: 10px; border: 1px solid rgba(187, 134, 252, 0.3);">
                         <label style="cursor:pointer; display:flex; align-items:center; gap:10px; font-weight:bold; color:var(--primary-color); font-size:15px;">
                             <input type="checkbox" id="chk-select-all" style="width:20px; height:20px; accent-color:var(--primary-color);"> 
                             <span>Tümünü Seç / Kaldır</span>
                         </label>
                     </div>
-                    
                     <div id="extraction-list"></div>
                 </div>
 
@@ -83,15 +81,27 @@
             
             <div class="sub-content-area">
                 <div id="sub-kelimeler" class="sub-section active">
-                    <button id="btn-random-session" class="action-btn" style="margin-bottom: 15px; background: var(--secondary-color); color: #000;"><i class="fa-solid fa-shuffle"></i> Rastgele 20 Kart İle Çalış</button>
+                    <button id="btn-random-session" class="action-btn" style="margin-bottom: 15px; background: var(--secondary-color); color: #000;"><i class="fa-solid fa-dumbbell"></i> Akıllı Çalışma Oturumu (20 Kelime)</button>
                     
                     <div id="flashcard-container" class="flashcard-container">
                         <div class="empty-vault-msg">Havuz boş. Önce kelime kaydedin.</div>
                     </div>
-                    <div class="flashcard-controls hidden" id="flashcard-controls">
-                        <button id="btn-prev-card" class="action-btn mini"><i class="fa-solid fa-arrow-left"></i></button>
-                        <span id="card-counter">1 / 1</span>
-                        <button id="btn-next-card" class="action-btn mini"><i class="fa-solid fa-arrow-right"></i></button>
+                    
+                    <div class="tinder-controls hidden" id="tinder-controls">
+                        <button id="btn-undo-card" class="btn-tinder undo" title="Geri Al"><i class="fa-solid fa-rotate-left"></i></button>
+                        <button id="btn-again-card" class="btn-tinder again" title="Tekrar Sor (Sola Kaydır)"><i class="fa-solid fa-xmark"></i></button>
+                        <button id="btn-know-card" class="btn-tinder know" title="Öğrendim (Sağa Kaydır)"><i class="fa-solid fa-check"></i></button>
+                    </div>
+
+                    <div class="quiz-controls hidden" id="quiz-controls">
+                        <div style="text-align: center; margin-bottom: 15px; font-size: 14px; color: var(--secondary-color); text-transform: uppercase; letter-spacing: 1px; font-weight: bold;">Yazılı Sınav</div>
+                        <div style="text-align: center; margin-bottom: 5px; font-weight: bold; font-size: 18px;" id="quiz-question-text">Türkçesi: ...</div>
+                        <div style="text-align: center; margin-bottom: 15px; font-size: 13px; color: var(--nav-inactive); font-style: italic;" id="quiz-hint-text"></div>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="text" id="quiz-input" placeholder="Hedef dilde yazın..." style="flex:1; padding: 12px; border-radius: 10px; border: 1px solid rgba(128,128,128,0.4); background: rgba(0,0,0,0.2); color: var(--text-color); outline: none; text-align: center; font-size: 16px;">
+                            <button id="btn-quiz-check" class="action-btn" style="border-radius: 10px; width: 50px;"><i class="fa-solid fa-paper-plane"></i></button>
+                        </div>
+                        <div id="quiz-feedback" style="text-align: center; margin-top: 10px; font-weight: bold; font-size: 14px; min-height: 20px;"></div>
                     </div>
                 </div>
 
