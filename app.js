@@ -187,7 +187,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!isRestore && API_KEYS.length > 0) { autoAnalyzeFullStory(text); }
     }
 
-    // ÖĞRETMEN MODU: TOPLU ANALİZ MOTORU
+    // ÖĞRETMEN MODU VE BİÇİMLENDİRME: TOPLU ANALİZ MOTORU
     async function autoAnalyzeFullStory(fullText) {
         const buttons = document.querySelectorAll('.sentence-actions button');
         buttons.forEach(b => { b.disabled = true; });
@@ -198,15 +198,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const cacheKey = `full_analysis_${studyLang}_${fullText.substring(0,30)}`;
         
-        // ÖĞRETMEN PROMPTU EKLENDİ
         const prompt = `Şu ${studyLang} dilindeki metnin İÇİNDEKİ HER BİR CÜMLEYİ ayrı ayrı analiz et: "${fullText}". 
-        SADECE JSON formatında bir dizi (array) döndür. Format şu şekilde olmalı: 
+        SADECE JSON formatında bir dizi (array) döndür. 
+        DİKKAT (HTML KULLAN): 'grammar' ve 'details' alanlarında metni <b>, <ul>, <li> ve <br> gibi HTML etiketleriyle MADDELER HALİNDE ve kalın yazılarla şık biçimde organize et. JSON bozulmaması için özelliklere style vb. yazarken SADECE TEK TIRNAK kullan.
+        Format şu şekilde olmalı: 
         [
           {
             "sentence": "Cümlenin orijinal tam hali",
             "translation": "Cümlenin ${nativeLang} çevirisi",
-            "grammar": "ÖĞRETMEN GİBİ ÇOK DETAYLI ANALİZ: Cümleyi yeni başlayan öğrenci için açıkla. Fiil varsa zamanını ve tüm zamirlere göre (ich, du, er/sie/es vb.) çekimini yaz. İsimlerin yalın hallerini ve artikellerini (der/die/das) KESİNLİKLE belirt. Edat varsa Dativ/Akkusativ durumunu açıkla. İyelik vb kural varsa mantığını kavrat.",
-            "words": [ {"word": "İsimse KESİNLİKLE ARTIKELİYLE (der Tisch). Fiilse mastar hali.", "translation": "Türkçesi", "pos": "isim/fiil/edat vs.", "details": "ÇOK DETAYLI: İsimse çoğul hali ve Dat/Akk durumu. Fiilse tüm kişi zamirlerine göre çekimleri ve geçmiş zamanı. Edatsa case kuralı. Modal ise kullanımı.", "example": "Kelimenin geçtiği örnek cümle", "example_tr": "Örnek cümlenin Türkçe çevirisi"} ]
+            "grammar": "ÖĞRETMEN GİBİ ÇOK DETAYLI ANALİZ (HTML formatlı, maddeli): Cümleyi yeni başlayan öğrenci için açıkla. Fiil varsa zamanını ve tüm zamirlere göre çekimini yaz. İsimlerin artikellerini (der/die/das) KESİNLİKLE belirt. Edat varsa durumunu açıkla.",
+            "words": [ {"word": "İsimse KESİNLİKLE ARTIKELİYLE (örn: der Tisch). Fiilse mastar hali.", "translation": "Türkçesi", "pos": "isim/fiil/edat vs.", "details": "ÇOK DETAYLI (HTML Formatlı, maddeli): İsimse çoğul hali ve Dat/Akk durumu. Fiilse tüm kişi zamirlerine göre çekimleri ve geçmiş zamanı. Edatsa case kuralı. Modal ise kullanımı.", "example": "Kelimenin geçtiği örnek cümle", "example_tr": "Örnek cümlenin Türkçe çevirisi"} ]
           }
         ]`;
 
@@ -229,24 +230,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const savedLabText = sessionStorage.getItem('activeLabText');
     if (savedLabText) prepareLabText(savedLabText, true); 
 
-    // --- AI ÇEKMECESİ VE GERİ TUŞU KONTROLÜ (HISTORY API) ---
+    // --- AI ÇEKMECESİ VE GERİ TUŞU KONTROLÜ ---
     const drawer = document.getElementById('ai-drawer');
     const chatContainer = document.getElementById('chat-container');
     const extractionContainer = document.getElementById('extraction-container');
     const chatContent = document.getElementById('ai-response-content');
     const extractionList = document.getElementById('extraction-list');
     
-    // Geri Tuşu Algılayıcısı
     window.addEventListener('popstate', (e) => {
         if (!drawer.classList.contains('hidden')) {
-            drawer.classList.add('hidden'); // Çekmeceyi kapat ama uygulamadan çıkma
+            drawer.classList.add('hidden'); 
         }
     });
 
     async function openDrawer(sentence, action) {
         currentDrawerContext = sentence;
         
-        // Çekmece kapalıysa aç ve History State ekle (Geri tuşu için)
         if (drawer.classList.contains('hidden')) {
             history.pushState({ drawerOpen: true }, "");
             drawer.classList.remove('hidden');
@@ -268,7 +267,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 extractionList.innerHTML = "<div style='padding:20px; text-align:center;'>Derin analiz yapılıyor, lütfen bekleyin...</div>";
                 const cacheKey = `extract_${studyLang}_${sentence.substring(0,30)}`;
                 const prompt = `Şu ${studyLang} cümlesindeki tüm kelimeleri yeni başlayan biri için DETAYLI analiz et: "${sentence}".
-                SADECE JSON dizisi döndür. Format: [{"word": "İsimse KESİNLİKLE ARTIKELİYLE (der Tisch), Fiilse mastar", "translation": "Türkçesi", "pos": "isim/fiil vs.", "details": "İsimse çoğul hali/case. Fiilse tüm zamirlere göre çekimleri ve zamanı. Edatsa Dativ/Akk durumu.", "example": "Örnek", "example_tr": "Örnek çevirisi"}]`;
+                SADECE JSON dizisi döndür. 
+                'details' alanında veriyi <b>, <ul>, <li>, <br> HTML etiketleriyle maddeler halinde, kalın vurgularla BİÇİMLENDİR.
+                Format: [{"word": "İsimse ARTIKELİYLE, Fiilse mastar", "translation": "Türkçesi", "pos": "isim/fiil vs.", "details": "HTML Biçimli Detaylı Çekimler", "example": "Örnek", "example_tr": "Örnek çevirisi"}]`;
                 const response = await callGemini(cacheKey, prompt, true);
                 renderExtractionList(response, sentence);
             }
@@ -287,7 +288,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (action === 'translate') {
                 cacheKey = `trans_${studyLang}_${sentence.substring(0,30)}`; prompt = `Şu ${studyLang} cümlesini ${nativeLang} diline çevir: "${sentence}"`;
             } else {
-                cacheKey = `gram_${studyLang}_${sentence.substring(0,30)}`; prompt = `Şu cümlenin dilbilgisini yeni başlayan bir öğrenci için ÇOK DETAYLI Türkçe açıkla. Fiil varsa zamanını ve tüm zamirlere göre çekimini yaz. İsimlerin artikellerini (der/die/das) belirt. Edat varsa Dativ/Akkusativ durumunu açıklayarak mantığını kavrat: "${sentence}"`;
+                cacheKey = `gram_${studyLang}_${sentence.substring(0,30)}`; prompt = `Şu cümlenin dilbilgisini yeni başlayan bir öğrenci için ÇOK DETAYLI Türkçe açıkla. Fiil varsa zamanını ve tüm zamirlere göre çekimini yaz. İsimlerin artikellerini belirt. Edat varsa durumunu açıkla. 
+                CEVABI HTML FORMATINDA VER: <b>, <ul>, <li>, <br> kullanarak cevabını çok şık, maddeler halinde ve kolay okunabilir şekilde biçimlendir. Düz metin YAZMA: "${sentence}"`;
             }
             
             addChatMessage("Öğretmen analiz ediyor...", 'ai');
@@ -296,11 +298,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Çekmecedeki "X" butonuna basınca
     document.getElementById('close-drawer').addEventListener('click', () => { 
         if (!drawer.classList.contains('hidden')) {
             drawer.classList.add('hidden'); 
-            // Manuel kapatmada History sırasını bozmamak için back() çağırılır
             if (history.state && history.state.drawerOpen) { history.back(); }
         }
     });
@@ -318,6 +318,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     regularity: item.details, example: item.example || sentence, backTranslation: item.translation, backExample: item.example_tr || "-"
                 }));
 
+                // innerHTML ile basıyoruz ki HTML tagları (<b>, <ul>) çalışsın
                 row.innerHTML = `
                     <input type="checkbox" class="extracted-checkbox" value="${safeData}">
                     <div class="extracted-info">
@@ -359,7 +360,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!question) return;
         addChatMessage(question, 'user'); inputEl.value = '';
 
-        const prompt = `Cümle: "${currentDrawerContext}". Soru: "${question}". Yeni başlayan öğrenciye açıklar gibi cevap ver.`;
+        const prompt = `Cümle: "${currentDrawerContext}". Soru: "${question}". Yeni başlayan öğrenciye açıklar gibi cevap ver. Cevabı HTML etiketleri (<b>, <ul> vb.) kullanarak çok şık ve maddeli biçimlendir.`;
         const loadingDiv = document.createElement('div'); loadingDiv.className = 'chat-msg chat-ai'; loadingDiv.innerText = "...";
         chatContent.appendChild(loadingDiv); chatContent.scrollTop = chatContent.scrollHeight;
 
@@ -369,10 +370,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function addChatMessage(text, sender) {
         const msgDiv = document.createElement('div'); msgDiv.className = `chat-msg chat-${sender}`;
-        msgDiv.innerText = text; chatContent.appendChild(msgDiv); chatContent.scrollTop = chatContent.scrollHeight;
+        // innerText yerine innerHTML kullanıyoruz ki formatlı gelsin
+        msgDiv.innerHTML = text; 
+        chatContent.appendChild(msgDiv); chatContent.scrollTop = chatContent.scrollHeight;
     }
 
-    // --- FLASHCARD (DETAYLI KAYDIRILABİLİR KUTU) ---
+    // --- FLASHCARD (ÖN/ARKA YÜZ OPTİMİZASYONU) ---
     document.getElementById('btn-random-session').addEventListener('click', () => {
         if (vault.length === 0) { alert("Havuz boş!"); return; }
         let shuffled = [...vault].sort(() => 0.5 - Math.random());
@@ -392,19 +395,19 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('card-counter').innerText = `${currentCardIndex + 1} / ${sessionVault.length}`;
         const cardData = sessionVault[currentCardIndex];
 
-        // fc-details içine eklendi ve tıklanıp kaydırılabilmesi için event.stopPropagation() verildi
+        // Ön Yüz: Orijinal Kelime, Cinsi, Orijinal Örnek. 
+        // Arka Yüz: Çevirisi, Gramer/AI Detayları, Türkçe Örnek.
         container.innerHTML = `
             <div class="flashcard" onclick="this.classList.toggle('flipped')">
                 <div class="card-face card-front">
                     <div class="fc-word">${cardData.frontWord || "Hata"}</div>
                     <div class="fc-type">${cardData.pos || "Kelime Türü Belirsiz"}</div>
-                    <div class="fc-details" onclick="event.stopPropagation();">${cardData.regularity || "Ekstra detay bulunmuyor."}</div>
                     <div class="fc-example">"${cardData.example || ""}"</div>
-                    <div class="fc-hint">Çeviri için dokun <i class="fa-solid fa-rotate"></i> <span>(Sağa sola kaydır)</span></div>
+                    <div class="fc-hint">Çeviri ve Detaylar İçin Dokun <i class="fa-solid fa-rotate"></i> <span>(Sağa sola kaydır)</span></div>
                 </div>
                 <div class="card-face card-back">
                     <div class="fc-word">${cardData.backTranslation || ""}</div>
-                    <div class="fc-type">Türkçe Karşılığı</div>
+                    <div class="fc-details" onclick="event.stopPropagation();">${cardData.regularity || "Ekstra detay bulunmuyor."}</div>
                     <div class="fc-example">"${cardData.backExample || "-"}"</div>
                 </div>
             </div>
@@ -414,14 +417,13 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-prev-card').addEventListener('click', () => { if (currentCardIndex > 0) { currentCardIndex--; renderFlashcard(); } });
     document.getElementById('btn-next-card').addEventListener('click', () => { if (currentCardIndex < sessionVault.length - 1) { currentCardIndex++; renderFlashcard(); } });
 
-    // Kartları Kaydırma (Swipe) Olayı
     let touchstartX = 0; let touchendX = 0;
     const fcContainer = document.getElementById('flashcard-container');
     fcContainer.addEventListener('touchstart', e => { touchstartX = e.changedTouches[0].screenX; }, {passive: true});
     fcContainer.addEventListener('touchend', e => {
         touchendX = e.changedTouches[0].screenX;
-        if (touchendX < touchstartX - 50) document.getElementById('btn-next-card').click(); // Sola kaydır (İleri)
-        if (touchendX > touchstartX + 50) document.getElementById('btn-prev-card').click(); // Sağa kaydır (Geri)
+        if (touchendX < touchstartX - 50) document.getElementById('btn-next-card').click(); 
+        if (touchendX > touchstartX + 50) document.getElementById('btn-prev-card').click(); 
     }, {passive: true});
 
     function renderVaultList() {
