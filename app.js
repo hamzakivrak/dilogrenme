@@ -257,9 +257,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const preData = currentStoryAnalysisData[sentence];
         const hasPreData = preData !== undefined;
 
+        // Orijinal Cümleyi Başlığa Yaz
+        document.getElementById('drawer-title').innerText = sentence;
+
         if (action === 'extract') {
+            document.getElementById('drawer-action-name').innerText = "Kelimeler Ayıklanıyor";
             chatContainer.classList.add('hidden'); extractionContainer.classList.remove('hidden');
-            document.getElementById('drawer-title').innerText = "Kelimeler Ayıklanıyor...";
             document.getElementById('btn-save-extracted').classList.add('hidden'); 
             
             if (hasPreData && preData.words) {
@@ -276,10 +279,10 @@ document.addEventListener('DOMContentLoaded', () => {
             extractionContainer.classList.add('hidden'); chatContainer.classList.remove('hidden'); chatContent.innerHTML = ''; 
             
             if (action === 'translate') {
-                document.getElementById('drawer-title').innerText = "Cümle Çevirisi";
+                document.getElementById('drawer-action-name').innerText = "Cümle Çevirisi";
                 if (hasPreData && preData.translation) { addChatMessage(preData.translation, 'ai'); return; }
             } else {
-                document.getElementById('drawer-title').innerText = "Gramer Analizi";
+                document.getElementById('drawer-action-name').innerText = "Gramer Analizi";
                 if (hasPreData && preData.grammar) { addChatMessage(preData.grammar, 'ai'); return; }
             }
             
@@ -300,7 +303,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!jsonString) { extractionList.innerHTML = "Veri çekilemedi."; return; }
         try {
             const words = JSON.parse(jsonString);
-            document.getElementById('drawer-title').innerText = "Cümledeki Kelimeler";
             extractionList.innerHTML = '';
             
             words.forEach(item => {
