@@ -9,7 +9,7 @@
     <title>AI Dil Asistanı Pro</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#121212">
-    <link rel="stylesheet" href="style.css?v=11">
+    <link rel="stylesheet" href="style.css?v=13">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
@@ -52,17 +52,18 @@
                 </div>
                 
                 <div id="extraction-container" class="drawer-content hidden" style="padding-bottom: 20px;">
-                    <div id="extract-header-actions" style="margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; padding: 0 5px;">
-                        <label style="cursor:pointer; display:flex; align-items:center; gap:8px; font-weight:bold; color:var(--primary-color); font-size:14px;">
-                            <input type="checkbox" id="chk-select-all" style="width:18px; height:18px; accent-color:var(--primary-color);"> Tümünü Seç
+                    <div id="extract-header-actions" class="hidden" style="margin-bottom: 15px; background: rgba(187, 134, 252, 0.1); padding: 12px; border-radius: 10px; border: 1px solid rgba(187, 134, 252, 0.3);">
+                        <label style="cursor:pointer; display:flex; align-items:center; gap:10px; font-weight:bold; color:var(--primary-color); font-size:15px;">
+                            <input type="checkbox" id="chk-select-all" style="width:20px; height:20px; accent-color:var(--primary-color);"> 
+                            <span>Tümünü Seç / Kaldır</span>
                         </label>
                     </div>
                     <div id="extraction-list"></div>
-                    <button id="btn-save-extracted" class="action-btn" style="margin-top: 15px;"><i class="fa-solid fa-star"></i> Seçilenleri Havuza At</button>
+                    <button id="btn-save-extracted" class="action-btn hidden" style="margin-top: 15px; width: 100%;"><i class="fa-solid fa-star"></i> Seçilenleri Havuza At</button>
                 </div>
 
                 <div id="chat-container" class="drawer-content">
-                    <div id="ai-response-content" style="display: flex; flex-direction: column; gap: 12px; padding-bottom: 60px;"></div>
+                    <div id="ai-response-content" style="display: flex; flex-direction: column; padding-bottom: 60px;"></div>
                     <div class="drawer-input-area">
                         <input type="text" id="drawer-chat-input" placeholder="Detay sor...">
                         <button id="btn-drawer-send"><i class="fa-solid fa-paper-plane"></i></button>
@@ -74,7 +75,8 @@
         <section id="tab-vocab" class="tab-section">
             <div class="top-sub-nav">
                 <button class="sub-nav-btn active" data-sub="sub-kelimeler">Eğitim Kartları</button>
-                <button class="sub-nav-btn" data-sub="sub-liste" id="btn-toggle-list">Kelime Listesi</button>
+                <button class="sub-nav-btn" data-sub="sub-liste">Kelime Listesi</button>
+                <button class="sub-nav-btn" data-sub="sub-notlar">Notlar</button>
             </div>
             
             <div class="sub-content-area">
@@ -103,6 +105,20 @@
                     </div>
                     <div id="vault-list"></div>
                 </div>
+
+                <div id="sub-notlar" class="sub-section hidden">
+                    <div class="section-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                        <h3><i class="fa-solid fa-book-open-reader"></i> Gramer Notları</h3>
+                        <details class="hide-delete" style="position: relative;">
+                            <summary style="cursor: pointer; color: var(--nav-inactive); list-style: none;"><i class="fa-solid fa-ellipsis-vertical" style="padding: 5px 15px; font-size: 18px;"></i></summary>
+                            <div style="position: absolute; right: 0; top: 100%; background: var(--surface-color); border: 1px solid rgba(128,128,128,0.3); border-radius: 8px; padding: 5px; z-index: 100; box-shadow: 0 4px 15px rgba(0,0,0,0.5); backdrop-filter: blur(10px);">
+                                <button id="btn-clear-all-notes" class="mini-btn" style="white-space: nowrap; background: transparent; color: #cf6679; border: 1px solid #cf6679;"><i class="fa-solid fa-trash-can"></i> Tümünü Sil</button>
+                            </div>
+                        </details>
+                    </div>
+                    <div id="notes-list-container"><div class="empty-vault-msg">Henüz kaydedilmiş not yok. AI analizlerini Notlara Ekle butonuyla buraya alabilirsin.</div></div>
+                </div>
+
             </div>
         </section>
 
@@ -180,9 +196,22 @@
             <label><input type="checkbox" id="chk-del-chat"> <strong>Sohbet Geçmişi</strong> (Yapay zekaya sorulan sorular)</label>
             <label><input type="checkbox" id="chk-del-stories"> <strong>Hikaye Kütüphanesi</strong> (Tüm kayıtlı metinler)</label>
             <label><input type="checkbox" id="chk-del-vault"> <strong>Kelime Havuzu</strong> (Tüm eğitim kartları)</label>
+            <label><input type="checkbox" id="chk-del-notes"> <strong>Gramer Notları</strong> (Kendi kaydettiğin notlar)</label>
             <div style="display:flex; gap:10px; margin-top:25px;">
                 <button id="btn-cancel-del" class="action-btn" style="background:rgba(128,128,128,0.5); flex:1;">İptal</button>
                 <button id="btn-confirm-del" class="action-btn" style="background:#cf6679; flex:1;">Seçilenleri Sil</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="note-title-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3><i class="fa-solid fa-bookmark"></i> Notu Kaydet</h3>
+            <p>Bu analizi hatırlamak için bir başlık belirle:</p>
+            <input type="text" id="note-title-input" placeholder="Örn: Akkusativ Alan Edatlar..." style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(128,128,128,0.4); background: transparent; color: var(--text-color); margin-bottom: 15px; outline:none; font-size:15px;">
+            <div style="display:flex; gap:10px;">
+                <button id="btn-cancel-note" class="action-btn" style="background:rgba(128,128,128,0.5); flex:1;">İptal</button>
+                <button id="btn-save-note-confirm" class="action-btn" style="background:var(--secondary-color); color:#000; flex:1;">Kaydet</button>
             </div>
         </div>
     </div>
