@@ -23,13 +23,13 @@ document.addEventListener('DOMContentLoaded', () => {
     let vault = JSON.parse(localStorage.getItem('myVault')) || [];
     let storyVault = JSON.parse(localStorage.getItem('myStories')) || []; 
     let notesVault = JSON.parse(localStorage.getItem('dil_notes')) || []; 
-    let sessionVault = []; 
+    let studySessionsVault = JSON.parse(localStorage.getItem('dil_study_sessions')) || []; 
     
-    // Eğitim Oturumu Mantığı Değişkenleri
-    let studyPhase = 'none'; // 'review' (Tinder Modu) veya 'quiz' (Sınav Modu)
-    let reviewQueue = []; // İnceleme sırası (indexler)
-    let learnedHistory = []; // Geri alabilmek için öğrenilenler (indexler)
-    let quizQueue = []; // Sınav sırası
+    let sessionVault = []; 
+    let studyPhase = 'none'; 
+    let reviewQueue = []; 
+    let learnedHistory = []; 
+    let quizQueue = []; 
     let currentQuizIndex = 0;
     let quizScore = 0;
 
@@ -59,7 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (target === 'tab-vocab') { 
             document.querySelector('[data-sub="sub-kelimeler"]').click(); 
-            renderVaultList(); 
+            checkFlashcardState();
         }
     }));
 
@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById(btn.getAttribute('data-sub')).classList.remove('hidden');
     }));
 
-    // --- AYARLAR ---
+    // --- AYARLAR VE GELİŞMİŞ HAFIZA SİLİCİ ---
     document.getElementById('btn-save-key').addEventListener('click', () => {
         const keysInput = document.getElementById('api-key-input').value.trim();
         if (keysInput) { 
@@ -95,15 +95,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const delStories = document.getElementById('chk-del-stories').checked;
         const delVault = document.getElementById('chk-del-vault').checked;
         const delNotes = document.getElementById('chk-del-notes').checked;
+        const delSessions = document.getElementById('chk-del-sessions').checked;
 
-        if (!delCache && !delChat && !delStories && !delVault && !delNotes) { alert("Lütfen silmek için listeden en az bir öğe seçin."); return; }
+        if (!delCache && !delChat && !delStories && !delVault && !delNotes && !delSessions) { alert("Lütfen silmek için listeden en az bir öğe seçin."); return; }
 
         if(confirm("Seçtiğin veriler tamamen silinecek ve bu işlem GERİ ALINAMAZ. Emin misin?")) {
             if (delCache) { aiCache = {}; localStorage.setItem('dil_ai_cache', JSON.stringify(aiCache)); }
             if (delChat) { chatHistoryVault = {}; localStorage.setItem('dil_chat_history', JSON.stringify(chatHistoryVault)); }
             if (delStories) { storyVault = []; localStorage.setItem('myStories', JSON.stringify(storyVault)); renderStoryList(); }
-            if (delVault) { vault = []; document.getElementById('flashcard-container').innerHTML = '<div class="empty-vault-msg">Havuz boş.</div>'; localStorage.setItem('myVault', JSON.stringify(vault)); renderVaultList(); }
+            if (delVault) { vault = []; sessionVault = []; localStorage.setItem('myVault', JSON.stringify(vault)); checkFlashcardState(); }
             if (delNotes) { notesVault = []; localStorage.setItem('dil_notes', JSON.stringify(notesVault)); renderNotesList(); }
+            if (delSessions) { studySessionsVault = []; localStorage.setItem('dil_study_sessions', JSON.stringify(studySessionsVault)); }
             
             alert("Seçilen veriler cihazınızdan başarıyla silindi!");
             document.getElementById('delete-modal').classList.add('hidden');
@@ -111,6 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // --- YAPAY ZEKA ÇEKMECESİ İÇİN TÜMÜNÜ SEÇ (LAB) ---
     document.getElementById('chk-select-all').addEventListener('change', (e) => {
         const checkboxes = document.querySelectorAll('.extracted-checkbox');
         checkboxes.forEach(cb => { if(!cb.disabled) cb.checked = e.target.checked; });
@@ -124,7 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
         else chkSelectAll.checked = false;
     }
 
-    // --- TTS (SESLENDİRME) ---
+    // --- TTS (SESLENDİRME) YARDIMCISI ---
     window.playAudio = (text, languageName) => {
         if(!text) return;
         const ut = new SpeechSynthesisUtterance(text);
@@ -340,6 +343,9 @@ document.addEventListener('DOMContentLoaded', () => {
         else {
             document.querySelectorAll('.story-content-box').forEach(el => el.classList.add('hidden'));
             document.querySelectorAll('.note-content-box').forEach(el => el.classList.add('hidden'));
+            if (!document.getElementById('word-list-modal').classList.contains('hidden')) {
+                document.getElementById('word-list-modal').classList.add('hidden');
+            }
         }
     });
 
@@ -482,8 +488,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         if(addedCount > 0) {
-            localStorage.setItem('myVault', JSON.stringify(vault)); sessionVault = [...vault]; 
-            renderVaultList(); alert(`${addedCount} kelime eklendi!`);
+            localStorage.setItem('myVault', JSON.stringify(vault)); 
+            checkFlashcardState(); alert(`${addedCount} kelime eklendi!`);
             document.getElementById('close-drawer').click(); 
         } else { alert("Seçtiğin kelimeler havuzda mevcut."); }
     });
@@ -579,44 +585,167 @@ document.addEventListener('DOMContentLoaded', () => {
         if(confirm("Tüm notları silmek istediğine emin misin?")) { notesVault = []; localStorage.setItem('dil_notes', JSON.stringify(notesVault)); renderNotesList(); }
     });
 
-    // --- 🎯 EFSANE OYUNLAŞTIRILMIŞ EĞİTİM MODÜLÜ (TİNDER + SINAV) ---
-    document.getElementById('btn-random-session').addEventListener('click', () => {
-        if (vault.length === 0) { alert("Havuz boş!"); return; }
-        // Rastgele 20 Kelimeyi Seç
-        let shuffled = [...vault].sort(() => 0.5 - Math.random());
-        sessionVault = shuffled.slice(0, 20);
+
+    // --- YENİ KELİME LİSTESİ MODALI (HAMBURGER) ---
+    document.getElementById('btn-open-word-list').addEventListener('click', () => {
+        renderModalVaultList();
+        document.getElementById('word-list-modal').classList.remove('hidden');
+        history.pushState({ wordListOpen: true }, "");
+    });
+
+    document.getElementById('btn-close-word-list').addEventListener('click', () => {
+        document.getElementById('word-list-modal').classList.add('hidden');
+        if (history.state && history.state.wordListOpen) history.back();
+    });
+
+    document.getElementById('chk-select-all-words').addEventListener('change', (e) => {
+        const checkboxes = document.querySelectorAll('.modal-vault-checkbox');
+        checkboxes.forEach(cb => cb.checked = e.target.checked);
+    });
+
+    function syncModalVaultCheckbox() {
+        const all = document.querySelectorAll('.modal-vault-checkbox');
+        const checked = document.querySelectorAll('.modal-vault-checkbox:checked');
+        const chkAll = document.getElementById('chk-select-all-words');
+        if(all.length > 0) chkAll.checked = (all.length === checked.length);
+        else chkAll.checked = false;
+    }
+
+    function renderModalVaultList() {
+        const list = document.getElementById('modal-vault-list');
+        document.getElementById('chk-select-all-words').checked = false;
+
+        if(vault.length === 0) { list.innerHTML = '<p style="text-align:center; margin-top:20px; opacity:0.6;">Havuz boş.</p>'; return; }
         
-        // Aşama 1: Tinder İnceleme Modunu Başlat
+        list.innerHTML = '';
+        vault.forEach(item => {
+            const row = document.createElement('div'); row.className = 'extracted-row';
+            row.innerHTML = `
+                <input type="checkbox" class="modal-vault-checkbox" value="${item.id}">
+                <div class="extracted-info">
+                    <div><span class="ext-word">${item.frontWord}</span> <span class="ext-trans">- ${item.backTranslation}</span></div>
+                    <span class="ext-pos">${item.pos || ''}</span>
+                </div>
+            `;
+            row.addEventListener('click', (e) => {
+                if(e.target.type !== 'checkbox') { const cb = row.querySelector('.modal-vault-checkbox'); cb.checked = !cb.checked; }
+                syncModalVaultCheckbox();
+            });
+            row.querySelector('.modal-vault-checkbox').addEventListener('change', syncModalVaultCheckbox);
+            list.appendChild(row);
+        });
+    }
+
+    document.getElementById('btn-delete-selected-words').addEventListener('click', () => {
+        const checked = document.querySelectorAll('.modal-vault-checkbox:checked');
+        if(checked.length === 0) { alert("Silmek için kelime seçin."); return; }
+        
+        if(confirm(`${checked.length} adet kelimeyi tamamen silmek istediğine emin misin?`)) {
+            const idsToDelete = Array.from(checked).map(cb => parseInt(cb.value));
+            vault = vault.filter(v => !idsToDelete.includes(v.id));
+            localStorage.setItem('myVault', JSON.stringify(vault));
+            renderModalVaultList();
+            checkFlashcardState();
+        }
+    });
+
+    // --- 🎯 EFSANE OYUNLAŞTIRILMIŞ EĞİTİM MODÜLÜ (TİNDER + SINAV) ---
+    
+    // Uygulama açılışında ana container mesajını ayarla
+    function checkFlashcardState() {
+        const container = document.getElementById('flashcard-container');
+        if (studyPhase === 'none') {
+            if (vault.length === 0) {
+                container.innerHTML = '<div class="empty-vault-msg">Havuz boş. Öğrenmek için önce kelime kaydedin.</div>';
+            } else {
+                container.innerHTML = '<div class="empty-vault-msg" style="color:var(--secondary-color); font-size:16px;">Çalışmaya başlamak için yukarıdaki butona tıklayın ⬆️</div>';
+            }
+        }
+    }
+
+    function initStudySession(cardsArray, isNewSession = false) {
+        if (cardsArray.length === 0) { alert("Bu oturumda kelime yok!"); return; }
+        
+        // Sınav özellikleri için nesneleri klonla (aktif oturum kirliliği olmasın)
+        sessionVault = cardsArray.map(card => ({...card, answered: false, isCorrect: false, userAnswer: ""}));
+        currentCardIndex = 0;
         studyPhase = 'review';
-        reviewQueue = sessionVault.map((_, index) => index); // 0'dan 19'a kadar index dizisi
-        learnedHistory = []; // Geri alabilmek için
+        reviewQueue = sessionVault.map((_, index) => index);
+        learnedHistory = [];
         
         document.getElementById('tinder-controls').classList.remove('hidden');
         document.getElementById('quiz-controls').classList.add('hidden');
         document.getElementById('flashcard-controls').classList.add('hidden');
         
+        if (isNewSession) {
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+            const newSessionRecord = { id: Date.now(), dateStr: dateStr, cards: cardsArray };
+            studySessionsVault.unshift(newSessionRecord);
+            if (studySessionsVault.length > 50) studySessionsVault.pop();
+            localStorage.setItem('dil_study_sessions', JSON.stringify(studySessionsVault));
+        } else { alert("Geçmiş çalışma oturumu başlatıldı. Bol şans!"); }
+        
         renderReviewCard();
+    }
+
+    document.getElementById('btn-random-session').addEventListener('click', () => {
+        if (vault.length === 0) { alert("Havuz boş! Önce kelime kaydetmelisin."); return; }
+        let shuffled = [...vault].sort(() => 0.5 - Math.random());
+        let selectedCards = shuffled.slice(0, 20);
+        initStudySession(selectedCards, true); 
     });
 
-    // Aşama 1 (Tinder) Render Fonksiyonu
+    // GEÇMİŞ OTURUMLAR MODALI
+    document.getElementById('btn-open-past-sessions').addEventListener('click', () => {
+        renderPastSessions(); document.getElementById('past-sessions-modal').classList.remove('hidden');
+    });
+    document.getElementById('btn-close-past-sessions').addEventListener('click', () => { document.getElementById('past-sessions-modal').classList.add('hidden'); });
+
+    function renderPastSessions() {
+        const container = document.getElementById('past-sessions-list');
+        if (studySessionsVault.length === 0) {
+            container.innerHTML = '<div class="empty-vault-msg" style="padding:10px;">Henüz geçmiş oturum yok. Çalışmaya başlayın.</div>'; return;
+        }
+        container.innerHTML = '';
+        studySessionsVault.forEach(session => {
+            const div = document.createElement('div'); div.className = 'session-history-item';
+            div.innerHTML = `
+                <div class="session-info">
+                    <span class="session-date"><i class="fa-regular fa-calendar-check"></i> ${session.dateStr}</span>
+                    <span class="session-count">${session.cards.length} Kelime</span>
+                </div>
+                <div style="display:flex; gap:5px;">
+                    <button class="action-btn mini" style="background:var(--secondary-color); color:#000;" onclick="startPastSession(${session.id})">Çalış</button>
+                    <button class="action-btn mini" style="background:transparent; border:1px solid #cf6679; color:#cf6679;" onclick="deletePastSession(${session.id})"><i class="fa-solid fa-trash"></i></button>
+                </div>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    window.startPastSession = (id) => {
+        const session = studySessionsVault.find(s => s.id === id);
+        if (session) { document.getElementById('past-sessions-modal').classList.add('hidden'); initStudySession(session.cards, false); }
+    };
+    window.deletePastSession = (id) => {
+        if(confirm("Silmek istediğine emin misin?")) {
+            studySessionsVault = studySessionsVault.filter(s => s.id !== id);
+            localStorage.setItem('dil_study_sessions', JSON.stringify(studySessionsVault)); renderPastSessions();
+        }
+    };
+
     function renderReviewCard() {
         const container = document.getElementById('flashcard-container');
-        
-        // Eğer sırada kelime kalmadıysa Aşama 2'ye (Sınava) geç!
-        if (reviewQueue.length === 0) {
-            startQuizPhase();
-            return;
-        }
+        if (reviewQueue.length === 0) { startQuizPhase(); return; }
 
         const currentCardIndex = reviewQueue[0];
         const cardData = sessionVault[currentCardIndex];
 
-        // Geri al butonunu sadece geçmişte bir şey varsa aktif et
         document.getElementById('btn-undo-card').disabled = learnedHistory.length === 0;
         if(learnedHistory.length === 0) { document.getElementById('btn-undo-card').style.opacity = '0.3'; }
         else { document.getElementById('btn-undo-card').style.opacity = '1'; }
 
-        // Kalan kelime sayısını göster
         let remaining = reviewQueue.length;
 
         container.innerHTML = `
@@ -638,56 +767,42 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
     }
 
-    // Tinder Buton Aksiyonları
     document.getElementById('btn-know-card').addEventListener('click', () => {
         if(studyPhase !== 'review' || reviewQueue.length === 0) return;
-        // Biliyorum: Sıradan çıkar, geçmişe at
-        learnedHistory.push(reviewQueue.shift());
-        renderReviewCard();
+        learnedHistory.push(reviewQueue.shift()); renderReviewCard();
     });
 
     document.getElementById('btn-again-card').addEventListener('click', () => {
         if(studyPhase !== 'review' || reviewQueue.length === 0) return;
-        // Tekrar Sor: Sıradan çıkar, en arkaya at
-        reviewQueue.push(reviewQueue.shift());
-        renderReviewCard();
+        reviewQueue.push(reviewQueue.shift()); renderReviewCard();
     });
 
     document.getElementById('btn-undo-card').addEventListener('click', () => {
         if(studyPhase !== 'review' || learnedHistory.length === 0) return;
-        // Geri Al: Geçmişten al, sıranın en önüne koy
-        reviewQueue.unshift(learnedHistory.pop());
-        renderReviewCard();
+        reviewQueue.unshift(learnedHistory.pop()); renderReviewCard();
     });
 
-    // Aşama 2: Yazılı Sınav (Aktif Hatırlama)
+    // --- YAZILI SINAV: MANUEL İLERLEME (GÜNCELLENDİ) ---
     function startQuizPhase() {
         studyPhase = 'quiz';
         document.getElementById('tinder-controls').classList.add('hidden');
         document.getElementById('quiz-controls').classList.remove('hidden');
-        
-        // Soruları karıştır
         quizQueue = [...sessionVault].sort(() => 0.5 - Math.random());
-        currentQuizIndex = 0;
-        quizScore = 0;
-        
+        currentQuizIndex = 0; quizScore = 0;
         renderQuizCard();
     }
 
     function renderQuizCard() {
         const container = document.getElementById('flashcard-container');
-        
-        // Eğer sınav bittiyse sonuç ekranını göster
-        if (currentQuizIndex >= quizQueue.length) {
-            showQuizResult();
-            return;
-        }
+        if (currentQuizIndex >= quizQueue.length) { showQuizResult(); return; }
 
         const cardData = quizQueue[currentQuizIndex];
         
-        // Kartın sadece arka yüzü gibi bir "soru" ekranı çiz (Tıklanınca dönmeyen statik kart)
+        // Eğer soru daha önce cevaplandıysa kartı yanlışsa ters döndür, doğruysa düz kalsın
+        const flippedClass = (cardData.answered && !cardData.isCorrect) ? 'flipped' : '';
+
         container.innerHTML = `
-            <div class="flashcard" style="cursor:default;" id="active-quiz-card">
+            <div class="flashcard ${flippedClass}" style="cursor:default;" id="active-quiz-card">
                 <div class="card-face card-front" style="justify-content: flex-start; padding-top:40px;">
                     <div style="font-size:12px; color:var(--secondary-color); font-weight:bold; letter-spacing:1px; text-transform:uppercase; margin-bottom: 20px;">Soru ${currentQuizIndex + 1} / ${quizQueue.length}</div>
                     <div style="font-size:50px; margin-bottom:10px; opacity:0.2;"><i class="fa-solid fa-pen-to-square"></i></div>
@@ -701,83 +816,103 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         `;
 
-        // Soru ve ipucu metinlerini güncelle
         document.getElementById('quiz-question-text').innerText = `Türkçesi: ${cardData.backTranslation}`;
         document.getElementById('quiz-hint-text').innerText = cardData.backExample && cardData.backExample !== "-" ? `Örnek: "${cardData.backExample}"` : "";
         
-        // Inputu temizle ve odaklan
         const inputEl = document.getElementById('quiz-input');
-        inputEl.value = "";
-        inputEl.className = ""; // Sınıfları sıfırla
-        inputEl.style.flex = "1"; inputEl.style.padding = "12px"; inputEl.style.borderRadius = "10px"; inputEl.style.border = "1px solid rgba(128,128,128,0.4)"; inputEl.style.background = "rgba(0,0,0,0.2)"; inputEl.style.color = "var(--text-color)"; inputEl.style.outline = "none"; inputEl.style.textAlign = "center"; inputEl.style.fontSize = "16px";
-        
-        document.getElementById('quiz-feedback').innerText = "";
-        document.getElementById('btn-quiz-check').disabled = false;
-        
-        // Mobilde klavye otomatik açılması bazen rahatsız edici olabilir, o yüzden sadece focus atıyoruz, tıklarsa açılır
-        setTimeout(() => inputEl.focus(), 100);
+        const feedbackEl = document.getElementById('quiz-feedback');
+        const btnCheck = document.getElementById('btn-quiz-check');
+
+        // Geçmiş cevap durumu kontrolü
+        if (cardData.answered) {
+            inputEl.value = cardData.userAnswer;
+            inputEl.disabled = true;
+            btnCheck.disabled = true;
+            inputEl.className = ""; // Sınıfları sıfırla
+            
+            if (cardData.isCorrect) {
+                inputEl.classList.add('quiz-input-correct');
+                feedbackEl.style.color = "var(--secondary-color)";
+                feedbackEl.innerText = "Doğru! ✅";
+            } else {
+                inputEl.classList.add('quiz-input-wrong');
+                feedbackEl.style.color = "#cf6679";
+                feedbackEl.innerText = "Hatalı! ❌";
+            }
+        } else {
+            inputEl.value = ""; 
+            inputEl.disabled = false;
+            btnCheck.disabled = false;
+            inputEl.className = ""; 
+            inputEl.style.flex = "1"; inputEl.style.padding = "12px"; inputEl.style.borderRadius = "10px"; inputEl.style.border = "1px solid rgba(128,128,128,0.4)"; inputEl.style.background = "rgba(0,0,0,0.2)"; inputEl.style.color = "var(--text-color)"; inputEl.style.outline = "none"; inputEl.style.textAlign = "center"; inputEl.style.fontSize = "16px";
+            feedbackEl.innerText = ""; 
+            setTimeout(() => inputEl.focus(), 100);
+        }
+
+        // Önceki/Sonraki Buton Kontrolleri
+        document.getElementById('btn-quiz-prev').disabled = (currentQuizIndex === 0);
+        // Sonraki butonunda her zaman aktif kalabilir, eğer sona gelindiyse sonuç ekranına atar
     }
 
-    // Cevap Kontrolü
     document.getElementById('btn-quiz-check').addEventListener('click', checkQuizAnswer);
-    document.getElementById('quiz-input').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') checkQuizAnswer();
+    document.getElementById('quiz-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') checkQuizAnswer(); });
+
+    document.getElementById('btn-quiz-prev').addEventListener('click', () => {
+        if(currentQuizIndex > 0) { currentQuizIndex--; renderQuizCard(); }
+    });
+    
+    document.getElementById('btn-quiz-next').addEventListener('click', () => {
+        if(currentQuizIndex < quizQueue.length) { 
+            currentQuizIndex++; 
+            renderQuizCard(); // Sınırı aşarsa zaten showQuizResult() çağrılacak
+        }
     });
 
     function checkQuizAnswer() {
         if (studyPhase !== 'quiz') return;
+        const cardData = quizQueue[currentQuizIndex];
+        if (cardData.answered) return; // Zaten cevaplanmışsa işlem yapma
+
         const inputEl = document.getElementById('quiz-input');
         const feedbackEl = document.getElementById('quiz-feedback');
         const btnCheck = document.getElementById('btn-quiz-check');
         const activeCard = document.getElementById('active-quiz-card');
         
         let userAnswer = inputEl.value.trim().toLowerCase();
-        let correctAnswer = quizQueue[currentQuizIndex].frontWord.trim().toLowerCase();
+        let correctAnswer = cardData.frontWord.trim().toLowerCase();
 
-        // Noktalama ve fazla boşlukları temizle
-        userAnswer = userAnswer.replace(/\s+/g, ' ');
-        correctAnswer = correctAnswer.replace(/\s+/g, ' ');
-
+        userAnswer = userAnswer.replace(/\s+/g, ' '); correctAnswer = correctAnswer.replace(/\s+/g, ' ');
         if (!userAnswer) return;
 
-        btnCheck.disabled = true; // Ard arda basmayı engelle
+        btnCheck.disabled = true; 
+        inputEl.disabled = true;
+        
+        cardData.answered = true;
+        cardData.userAnswer = userAnswer;
 
         if (userAnswer === correctAnswer) {
-            quizScore++;
-            inputEl.classList.add('quiz-input-correct');
-            feedbackEl.style.color = "var(--secondary-color)";
-            feedbackEl.innerText = "Doğru! Harikasın ✅";
-            playAudio(quizQueue[currentQuizIndex].frontWord, studyLang); // Doğruysa okusun
-            
-            setTimeout(() => {
-                currentQuizIndex++;
-                renderQuizCard();
-            }, 1200);
-
+            quizScore++; 
+            cardData.isCorrect = true;
+            inputEl.classList.add('quiz-input-correct'); 
+            feedbackEl.style.color = "var(--secondary-color)"; 
+            feedbackEl.innerText = "Doğru! ✅";
+            playAudio(cardData.frontWord, studyLang); 
         } else {
-            inputEl.classList.add('quiz-input-wrong');
-            feedbackEl.style.color = "#cf6679";
-            feedbackEl.innerText = "Hatalı!";
-            
-            // Kartı ters çevirerek doğru cevabı ve detayları göster
+            cardData.isCorrect = false;
+            inputEl.classList.add('quiz-input-wrong'); 
+            feedbackEl.style.color = "#cf6679"; 
+            feedbackEl.innerText = "Hatalı! ❌";
             if (activeCard) activeCard.classList.add('flipped');
-
-            setTimeout(() => {
-                currentQuizIndex++;
-                renderQuizCard();
-            }, 3000); // Yanlış cevabı incelemesi için 3 saniye süre ver
         }
+        // OTOMATİK GEÇİŞ KALDIRILDI. KULLANICI SONRAKİ BUTONUNA VEYA SWIPE'A BASACAK.
     }
 
-    // Aşama 3: Skor Ekranı
     function showQuizResult() {
         studyPhase = 'none';
         document.getElementById('quiz-controls').classList.add('hidden');
-        
         const container = document.getElementById('flashcard-container');
         let successRate = Math.round((quizScore / quizQueue.length) * 100);
-        let message = "";
-        let color = "";
+        let message = ""; let color = "";
 
         if (successRate >= 90) { message = "Muhteşem!"; color = "var(--secondary-color)"; }
         else if (successRate >= 60) { message = "İyi iş çıkardın, biraz daha tekrar!"; color = "var(--primary-color)"; }
@@ -790,12 +925,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div style="font-size:24px; font-weight:bold; color:${color}; margin-bottom:10px;">${message}</div>
                     <div style="font-size:16px; color:var(--text-color); margin-bottom:30px;">20 kelimenin <b>${quizScore}</b> tanesini doğru yazdın.</div>
                     <div style="font-size:30px; font-weight:bold; border:2px solid ${color}; color:${color}; padding:10px 30px; border-radius:20px; background:rgba(0,0,0,0.2);">%${successRate}</div>
+                    <button class="action-btn mini" style="margin-top:20px;" onclick="document.querySelector('[data-sub=\\'sub-kelimeler\\']').click(); checkFlashcardState();">Bitir</button>
                 </div>
             </div>
         `;
     }
 
-    // HAVUZ GENEL SWIPE (Kaydırma) KONTROLLERİ (Güncellendi)
+    // HAVUZ GENEL SWIPE (Kaydırma) KONTROLLERİ
     let touchstartX = 0; let touchendX = 0;
     const vocabTab = document.getElementById('tab-vocab');
     
@@ -805,56 +941,31 @@ document.addEventListener('DOMContentLoaded', () => {
         let isInsideCard = e.target.closest('.flashcard-container'); 
         const currentSubTab = document.querySelector('.sub-nav-btn.active').getAttribute('data-sub');
         
-        // Eğer İnceleme (Tinder) aşamasındaysak kaydırma işlemleri butonları tetikler
         if (studyPhase === 'review' && isInsideCard) {
-            if (touchendX < touchstartX - 50) document.getElementById('btn-again-card').click(); // Sola kaydır (Tekrar Sor)
-            if (touchendX > touchstartX + 50) document.getElementById('btn-know-card').click();  // Sağa kaydır (Öğrendim)
+            if (touchendX < touchstartX - 50) document.getElementById('btn-again-card').click(); 
+            if (touchendX > touchstartX + 50) document.getElementById('btn-know-card').click();  
             return;
         }
 
-        // Eğer Sınav (Quiz) aşamasındaysak kaydırmayı tamamen iptal et (yanlışlıkla geçmesin)
-        if (studyPhase === 'quiz' && isInsideCard) return;
+        // Sınav (Quiz) Swipe Kontrolü -> Artık Önceki/Sonraki soruya geçiyor
+        if (studyPhase === 'quiz' && isInsideCard) {
+            if (touchendX < touchstartX - 60) document.getElementById('btn-quiz-next').click(); 
+            if (touchendX > touchstartX + 60) document.getElementById('btn-quiz-prev').click(); 
+            return;
+        }
 
-        // Normal sekmeler arası (Kartlar <-> Liste <-> Notlar) kaydırma
+        // Ana Sekme Geçişi
         if (touchendX < touchstartX - 60) {
-            if (currentSubTab === 'sub-kelimeler') document.querySelector('[data-sub="sub-liste"]').click(); 
-            else if (currentSubTab === 'sub-liste') document.querySelector('[data-sub="sub-notlar"]').click(); 
+            if (currentSubTab === 'sub-kelimeler') document.querySelector('[data-sub="sub-notlar"]').click(); 
         }
         if (touchendX > touchstartX + 60) {
-            if (currentSubTab === 'sub-notlar') document.querySelector('[data-sub="sub-liste"]').click(); 
-            else if (currentSubTab === 'sub-liste') document.querySelector('[data-sub="sub-kelimeler"]').click(); 
+            if (currentSubTab === 'sub-notlar') document.querySelector('[data-sub="sub-kelimeler"]').click(); 
         }
     }, {passive: true});
 
-    function renderVaultList() {
-        const list = document.getElementById('vault-list'); if(!list) return;
-        list.innerHTML = vault.length === 0 ? '<p>Havuz boş.</p>' : '';
-        vault.forEach(item => {
-            const card = document.createElement('div'); card.className = 'word-card';
-            card.innerHTML = `<div><small>${item.lang}</small><div><strong>${item.frontWord}</strong></div></div>
-                              <button class="mini-btn" style="background:transparent; color:#cf6679; border:1px solid #cf6679;" onclick="deleteWord(${item.id})"><i class="fa-solid fa-trash"></i></button>`;
-            list.appendChild(card);
-        });
-    }
-
-    window.deleteWord = (id) => {
-        vault = vault.filter(v => v.id !== id); sessionVault = sessionVault.filter(v => v.id !== id);
-        localStorage.setItem('myVault', JSON.stringify(vault));
-        if(currentCardIndex >= sessionVault.length) currentCardIndex = Math.max(0, sessionVault.length - 1);
-        renderVaultList(); 
-    };
-    
-    document.getElementById('btn-clear-all').addEventListener('click', () => {
-        if(confirm("Tümünü silmek istediğine emin misin?")) {
-            vault = []; sessionVault = []; localStorage.setItem('myVault', JSON.stringify(vault));
-            currentCardIndex = 0; renderVaultList(); 
-            document.getElementById('flashcard-container').innerHTML = '<div class="empty-vault-msg">Havuz boş.</div>';
-        }
-    });
-
     document.getElementById('btn-export-vault').addEventListener('click', () => {
         const fullBackup = {
-            vault: vault, storyVault: storyVault, aiCache: aiCache, chatHistoryVault: chatHistoryVault, notesVault: notesVault,
+            vault: vault, storyVault: storyVault, aiCache: aiCache, chatHistoryVault: chatHistoryVault, notesVault: notesVault, studySessionsVault: studySessionsVault,
             settings: { apiKeys: localStorage.getItem('gemini_api_keys') || "", nativeLang: nativeLang, studyLang: studyLang, theme: localStorage.getItem('dil_theme_class') || "" }
         };
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(fullBackup));
@@ -869,14 +980,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 const importedData = JSON.parse(e.target.result);
                 if (Array.isArray(importedData)) {
                     vault = importedData; sessionVault = [...vault]; localStorage.setItem('myVault', JSON.stringify(vault));
-                    currentCardIndex = 0; alert("Eski tip kelime yedeği yüklendi!"); renderVaultList(); 
+                    currentCardIndex = 0; alert("Eski tip kelime yedeği yüklendi!"); checkFlashcardState();
                 } else if (importedData.vault !== undefined) {
-                    if(confirm("Bu işlem mevcut tüm hikaye, kelime, not ve sohbetlerini silecek ve yedekteki verileri yükleyecek. Emin misin?")) {
+                    if(confirm("Mevcut tüm verilerin silinip yedektekilerin yüklenecek. Emin misin?")) {
                         localStorage.setItem('myVault', JSON.stringify(importedData.vault || []));
                         localStorage.setItem('myStories', JSON.stringify(importedData.storyVault || []));
                         localStorage.setItem('dil_ai_cache', JSON.stringify(importedData.aiCache || {}));
                         localStorage.setItem('dil_chat_history', JSON.stringify(importedData.chatHistoryVault || {}));
                         localStorage.setItem('dil_notes', JSON.stringify(importedData.notesVault || []));
+                        localStorage.setItem('dil_study_sessions', JSON.stringify(importedData.studySessionsVault || []));
                         if (importedData.settings) {
                             localStorage.setItem('gemini_api_keys', importedData.settings.apiKeys || "");
                             localStorage.setItem('nativeLang', importedData.settings.nativeLang || "Türkçe");
@@ -891,4 +1003,5 @@ document.addEventListener('DOMContentLoaded', () => {
         reader.readAsText(file);
     });
 
+    checkFlashcardState();
 });
