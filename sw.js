@@ -1,20 +1,7 @@
-const CACHE_NAME = 'dil-ai-v2'; // Sürümü güncelledik (v2)
-
-const ASSETS_TO_CACHE = [
-    './index.html',
-    './style.css',
-    './app.js',
-    './manifest.json',
-    './icon-192.png',
-    './icon-512.png'
-];
+const CACHE_NAME = 'dil-ai-v3'; 
 
 self.addEventListener('install', (event) => {
-    event.waitUntil(
-        caches.open(CACHE_NAME)
-            .then((cache) => cache.addAll(ASSETS_TO_CACHE))
-            .then(self.skipWaiting())
-    );
+    self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
@@ -31,11 +18,16 @@ self.addEventListener('activate', (event) => {
     );
 });
 
+// AĞ-ÖNCELİKLİ (Network-First) STRATEJİ: Her zaman en güncel kodu çeker!
 self.addEventListener('fetch', (event) => {
-    // Cache-First, then Network stratejisi (Uygulama hızı için)
     event.respondWith(
-        caches.match(event.request)
-            .then((response) => response || fetch(event.request))
+        fetch(event.request).then((response) => {
+            return caches.open(CACHE_NAME).then((cache) => {
+                cache.put(event.request, response.clone());
+                return response;
+            });
+        }).catch(() => {
+            return caches.match(event.request); // Sadece internet yoksa hafızadan kullan
+        })
     );
 });
-
