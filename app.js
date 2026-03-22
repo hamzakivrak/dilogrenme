@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     
-    // -- TEMA SİSTEMİ (Dropdown Menü) --
+    // -- TEMA SİSTEMİ --
     const themeSelect = document.getElementById('theme-select');
     let savedTheme = localStorage.getItem('dil_theme_class') || "";
     if (savedTheme) {
@@ -92,9 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
             let activeKey = API_KEYS[currentKeyIndex];
             const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${activeKey}`;
             try {
-                const response = await fetch(url, {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
-                });
+                const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
                 const data = await response.json();
                 
                 if (data.error) {
@@ -121,8 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         btn.innerText = "Üretiliyor..."; btn.disabled = true;
         
-        const prompt = `Lütfen "${input}" konusunda, ${studyLang} dilinde A1-A2 seviyesinde ${count} adet farklı kısa hikaye yaz. 
-        SADECE JSON formatında bir dizi (array) döndür. Format: [{"title": "Hikaye Başlığı", "content": "Hikaye metni..."}]`;
+        const prompt = `Lütfen "${input}" konusunda, ${studyLang} dilinde A1-A2 seviyesinde ${count} adet farklı kısa hikaye yaz. SADECE JSON formatında bir dizi (array) döndür. Format: [{"title": "Hikaye Başlığı", "content": "Hikaye metni..."}]`;
 
         const responseText = await callGemini(null, prompt, true);
         btn.innerText = "Hikaye Üret"; btn.disabled = false;
@@ -144,25 +141,19 @@ document.addEventListener('DOMContentLoaded', () => {
         listContainer.innerHTML = '';
         storyVault.forEach(story => {
             const div = document.createElement('div'); div.className = 'story-item';
-            div.innerHTML = `<div class="story-item-title"><i class="fa-solid fa-book"></i> ${story.title}</div>
-                             <button class="mini-btn" onclick="event.stopPropagation(); deleteStory(${story.id})"><i class="fa-solid fa-trash"></i></button>`;
-            div.addEventListener('click', () => {
-                document.querySelector('[data-target="tab-lab"]').click();
-                prepareLabText(story.content);
-            });
+            div.innerHTML = `<div class="story-item-title"><i class="fa-solid fa-book"></i> ${story.title}</div><button class="mini-btn" onclick="event.stopPropagation(); deleteStory(${story.id})"><i class="fa-solid fa-trash"></i></button>`;
+            div.addEventListener('click', () => { document.querySelector('[data-target="tab-lab"]').click(); prepareLabText(story.content); });
             listContainer.appendChild(div);
         });
     }
 
     window.deleteStory = (id) => {
         if(confirm("Hikayeyi silmek istediğine emin misin?")) {
-            storyVault = storyVault.filter(s => s.id !== id);
-            localStorage.setItem('myStories', JSON.stringify(storyVault));
-            renderStoryList();
+            storyVault = storyVault.filter(s => s.id !== id); localStorage.setItem('myStories', JSON.stringify(storyVault)); renderStoryList();
         }
     };
 
-    // --- LAB: CÜMLE VE PARAGRAF ANALİZİ ---
+    // --- LAB: CÜMLE ANALİZİ ---
     async function prepareLabText(text, isRestore = false) {
         sessionStorage.setItem('activeLabText', text);
         currentStoryAnalysisData = {}; 
@@ -193,12 +184,10 @@ document.addEventListener('DOMContentLoaded', () => {
             block.appendChild(actionsDiv); labContainer.appendChild(block);
         });
 
-        if (!isRestore && API_KEYS.length > 0) {
-            autoAnalyzeFullStory(text);
-        }
+        if (!isRestore && API_KEYS.length > 0) { autoAnalyzeFullStory(text); }
     }
 
-    // TOPLU ANALİZ MOTORU & YÜKLEME DURUMU
+    // ÖĞRETMEN MODU: TOPLU ANALİZ MOTORU
     async function autoAnalyzeFullStory(fullText) {
         const buttons = document.querySelectorAll('.sentence-actions button');
         buttons.forEach(b => { b.disabled = true; });
@@ -208,15 +197,16 @@ document.addEventListener('DOMContentLoaded', () => {
         statusBadge.innerHTML = '<i class="fa-solid fa-spinner"></i> <span>Yapay Zeka Metni Analiz Ediyor... Lütfen bekleyiniz.</span>';
 
         const cacheKey = `full_analysis_${studyLang}_${fullText.substring(0,30)}`;
+        
+        // ÖĞRETMEN PROMPTU EKLENDİ
         const prompt = `Şu ${studyLang} dilindeki metnin İÇİNDEKİ HER BİR CÜMLEYİ ayrı ayrı analiz et: "${fullText}". 
-        SADECE JSON formatında bir dizi (array) döndür. 
-        Format şu şekilde olmalı: 
+        SADECE JSON formatında bir dizi (array) döndür. Format şu şekilde olmalı: 
         [
           {
             "sentence": "Cümlenin orijinal tam hali",
             "translation": "Cümlenin ${nativeLang} çevirisi",
-            "grammar": "Cümlenin dilbilgisi, zamanı ve kurallarının Türkçe kısa özeti",
-            "words": [ {"word": "KESİNLİKLE ARTIKELİYLE BİRLİKTE kelime (örn: der Tisch, das Haus, gehen)", "translation": "Türkçesi", "pos": "isim/fiil", "details": "çoğul/zaman/vs", "example": "Kelimenin geçtiği örnek cümle", "example_tr": "Örnek cümlenin Türkçe çevirisi"} ]
+            "grammar": "ÖĞRETMEN GİBİ ÇOK DETAYLI ANALİZ: Cümleyi yeni başlayan öğrenci için açıkla. Fiil varsa zamanını ve tüm zamirlere göre (ich, du, er/sie/es vb.) çekimini yaz. İsimlerin yalın hallerini ve artikellerini (der/die/das) KESİNLİKLE belirt. Edat varsa Dativ/Akkusativ durumunu açıkla. İyelik vb kural varsa mantığını kavrat.",
+            "words": [ {"word": "İsimse KESİNLİKLE ARTIKELİYLE (der Tisch). Fiilse mastar hali.", "translation": "Türkçesi", "pos": "isim/fiil/edat vs.", "details": "ÇOK DETAYLI: İsimse çoğul hali ve Dat/Akk durumu. Fiilse tüm kişi zamirlerine göre çekimleri ve geçmiş zamanı. Edatsa case kuralı. Modal ise kullanımı.", "example": "Kelimenin geçtiği örnek cümle", "example_tr": "Örnek cümlenin Türkçe çevirisi"} ]
           }
         ]`;
 
@@ -230,12 +220,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 statusBadge.classList.add('success');
                 statusBadge.innerHTML = '<i class="fa-solid fa-check"></i> <span>Analiz Tamamlandı!</span>';
                 setTimeout(() => statusBadge.classList.add('hidden'), 3000);
-            } catch (e) {
-                statusBadge.classList.add('hidden');
-            }
-        } else {
-            statusBadge.classList.add('hidden');
-        }
+            } catch (e) { statusBadge.classList.add('hidden'); }
+        } else { statusBadge.classList.add('hidden'); }
 
         buttons.forEach(b => { b.disabled = false; });
     }
@@ -243,21 +229,32 @@ document.addEventListener('DOMContentLoaded', () => {
     const savedLabText = sessionStorage.getItem('activeLabText');
     if (savedLabText) prepareLabText(savedLabText, true); 
 
-    // --- AI ÇEKMECESİ ---
+    // --- AI ÇEKMECESİ VE GERİ TUŞU KONTROLÜ (HISTORY API) ---
     const drawer = document.getElementById('ai-drawer');
     const chatContainer = document.getElementById('chat-container');
     const extractionContainer = document.getElementById('extraction-container');
     const chatContent = document.getElementById('ai-response-content');
     const extractionList = document.getElementById('extraction-list');
     
+    // Geri Tuşu Algılayıcısı
+    window.addEventListener('popstate', (e) => {
+        if (!drawer.classList.contains('hidden')) {
+            drawer.classList.add('hidden'); // Çekmeceyi kapat ama uygulamadan çıkma
+        }
+    });
+
     async function openDrawer(sentence, action) {
         currentDrawerContext = sentence;
-        drawer.classList.remove('hidden');
         
+        // Çekmece kapalıysa aç ve History State ekle (Geri tuşu için)
+        if (drawer.classList.contains('hidden')) {
+            history.pushState({ drawerOpen: true }, "");
+            drawer.classList.remove('hidden');
+        }
+
         const preData = currentStoryAnalysisData[sentence];
         const hasPreData = preData !== undefined;
 
-        // Orijinal Cümleyi Başlığa Yaz
         document.getElementById('drawer-title').innerText = sentence;
 
         if (action === 'extract') {
@@ -270,8 +267,8 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 extractionList.innerHTML = "<div style='padding:20px; text-align:center;'>Derin analiz yapılıyor, lütfen bekleyin...</div>";
                 const cacheKey = `extract_${studyLang}_${sentence.substring(0,30)}`;
-                const prompt = `Şu ${studyLang} cümlesindeki tüm kelimeleri analiz et: "${sentence}".
-                SADECE JSON dizisi döndür. Format: [{"word": "KESİNLİKLE ARTIKELİYLE BİRLİKTE kelime (örn: der Tisch)", "translation": "Türkçesi", "pos": "isim/fiil", "details": "detay", "example": "Örnek cümle", "example_tr": "Örnek cümlenin Türkçe çevirisi"}]`;
+                const prompt = `Şu ${studyLang} cümlesindeki tüm kelimeleri yeni başlayan biri için DETAYLI analiz et: "${sentence}".
+                SADECE JSON dizisi döndür. Format: [{"word": "İsimse KESİNLİKLE ARTIKELİYLE (der Tisch), Fiilse mastar", "translation": "Türkçesi", "pos": "isim/fiil vs.", "details": "İsimse çoğul hali/case. Fiilse tüm zamirlere göre çekimleri ve zamanı. Edatsa Dativ/Akk durumu.", "example": "Örnek", "example_tr": "Örnek çevirisi"}]`;
                 const response = await callGemini(cacheKey, prompt, true);
                 renderExtractionList(response, sentence);
             }
@@ -290,14 +287,23 @@ document.addEventListener('DOMContentLoaded', () => {
             if (action === 'translate') {
                 cacheKey = `trans_${studyLang}_${sentence.substring(0,30)}`; prompt = `Şu ${studyLang} cümlesini ${nativeLang} diline çevir: "${sentence}"`;
             } else {
-                cacheKey = `gram_${studyLang}_${sentence.substring(0,30)}`; prompt = `Şu cümlenin dilbilgisini Türkçe açıkla: "${sentence}"`;
+                cacheKey = `gram_${studyLang}_${sentence.substring(0,30)}`; prompt = `Şu cümlenin dilbilgisini yeni başlayan bir öğrenci için ÇOK DETAYLI Türkçe açıkla. Fiil varsa zamanını ve tüm zamirlere göre çekimini yaz. İsimlerin artikellerini (der/die/das) belirt. Edat varsa Dativ/Akkusativ durumunu açıklayarak mantığını kavrat: "${sentence}"`;
             }
             
-            addChatMessage("Analiz ediliyor...", 'ai');
+            addChatMessage("Öğretmen analiz ediyor...", 'ai');
             const response = await callGemini(cacheKey, prompt, false);
             chatContent.innerHTML = ''; addChatMessage(response || "Hata oluştu.", 'ai');
         }
     }
+
+    // Çekmecedeki "X" butonuna basınca
+    document.getElementById('close-drawer').addEventListener('click', () => { 
+        if (!drawer.classList.contains('hidden')) {
+            drawer.classList.add('hidden'); 
+            // Manuel kapatmada History sırasını bozmamak için back() çağırılır
+            if (history.state && history.state.drawerOpen) { history.back(); }
+        }
+    });
 
     function renderExtractionList(jsonString, sentence) {
         if (!jsonString) { extractionList.innerHTML = "Veri çekilemedi."; return; }
@@ -315,8 +321,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 row.innerHTML = `
                     <input type="checkbox" class="extracted-checkbox" value="${safeData}">
                     <div class="extracted-info">
-                        <span class="ext-word">${item.word} <span class="ext-trans">- ${item.translation}</span></span>
-                        <span class="ext-details">${item.pos} | ${item.details}</span>
+                        <div>
+                            <span class="ext-word">${item.word}</span> <span class="ext-trans">- ${item.translation}</span>
+                        </div>
+                        <span class="ext-pos">${item.pos}</span>
+                        <div class="ext-details-box">${item.details}</div>
                     </div>
                 `;
                 row.addEventListener('click', (e) => {
@@ -350,7 +359,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!question) return;
         addChatMessage(question, 'user'); inputEl.value = '';
 
-        const prompt = `Cümle: "${currentDrawerContext}". Soru: "${question}". Kısa cevap ver.`;
+        const prompt = `Cümle: "${currentDrawerContext}". Soru: "${question}". Yeni başlayan öğrenciye açıklar gibi cevap ver.`;
         const loadingDiv = document.createElement('div'); loadingDiv.className = 'chat-msg chat-ai'; loadingDiv.innerText = "...";
         chatContent.appendChild(loadingDiv); chatContent.scrollTop = chatContent.scrollHeight;
 
@@ -362,9 +371,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const msgDiv = document.createElement('div'); msgDiv.className = `chat-msg chat-${sender}`;
         msgDiv.innerText = text; chatContent.appendChild(msgDiv); chatContent.scrollTop = chatContent.scrollHeight;
     }
-    document.getElementById('close-drawer').addEventListener('click', () => { drawer.classList.add('hidden'); });
 
-    // --- FLASHCARD (SWIPE VE CAMSILIK) ---
+    // --- FLASHCARD (DETAYLI KAYDIRILABİLİR KUTU) ---
     document.getElementById('btn-random-session').addEventListener('click', () => {
         if (vault.length === 0) { alert("Havuz boş!"); return; }
         let shuffled = [...vault].sort(() => 0.5 - Math.random());
@@ -384,11 +392,13 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('card-counter').innerText = `${currentCardIndex + 1} / ${sessionVault.length}`;
         const cardData = sessionVault[currentCardIndex];
 
+        // fc-details içine eklendi ve tıklanıp kaydırılabilmesi için event.stopPropagation() verildi
         container.innerHTML = `
             <div class="flashcard" onclick="this.classList.toggle('flipped')">
                 <div class="card-face card-front">
                     <div class="fc-word">${cardData.frontWord || "Hata"}</div>
-                    <div class="fc-type">${cardData.pos || ""} | ${cardData.regularity || ""}</div>
+                    <div class="fc-type">${cardData.pos || "Kelime Türü Belirsiz"}</div>
+                    <div class="fc-details" onclick="event.stopPropagation();">${cardData.regularity || "Ekstra detay bulunmuyor."}</div>
                     <div class="fc-example">"${cardData.example || ""}"</div>
                     <div class="fc-hint">Çeviri için dokun <i class="fa-solid fa-rotate"></i> <span>(Sağa sola kaydır)</span></div>
                 </div>
