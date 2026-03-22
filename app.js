@@ -108,6 +108,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // --- TÜMÜNÜ SEÇ CHECKBOX DİNLEYİCİSİ ---
+    document.getElementById('chk-select-all').addEventListener('change', (e) => {
+        const checkboxes = document.querySelectorAll('.extracted-checkbox');
+        checkboxes.forEach(cb => {
+            if(!cb.disabled) cb.checked = e.target.checked;
+        });
+    });
+
     // --- TTS (SESLENDİRME) YARDIMCISI ---
     window.playAudio = (text, languageName) => {
         if(!text) return;
@@ -168,7 +176,8 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const stories = JSON.parse(responseText);
             stories.forEach(story => {
-                storyVault.unshift({ id: Date.now() + Math.floor(Math.random() * 1000), title: story.title, content: story.content, lang: studyLang, prompt: input });
+                // isWorked özelliği default false başlar
+                storyVault.unshift({ id: Date.now() + Math.floor(Math.random() * 1000), title: story.title, content: story.content, lang: studyLang, prompt: input, isWorked: false });
             });
             localStorage.setItem('myStories', JSON.stringify(storyVault));
             renderStoryList();
@@ -180,10 +189,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (storyVault.length === 0) { listContainer.innerHTML = '<div class="empty-vault-msg">Henüz kayıtlı hikaye yok.</div>'; return; }
         listContainer.innerHTML = '';
         storyVault.forEach(story => {
-            const div = document.createElement('div'); div.className = 'story-item';
+            const div = document.createElement('div'); 
+            
+            // Eğer daha önce Laba aktarıldıysa worked stili ve ikonu uygula
+            const workedClass = story.isWorked ? ' worked' : '';
+            const workedIcon = story.isWorked ? '<i class="fa-solid fa-check-double" style="margin-right:5px; font-size:12px;"></i> ' : '';
+            
+            div.className = `story-item${workedClass}`;
             div.innerHTML = `
                 <div class="story-header" onclick="toggleStory(${story.id})">
-                    <div class="story-item-title"><i class="fa-solid fa-book"></i> ${story.title}</div>
+                    <div class="story-item-title"><i class="fa-solid fa-book"></i> ${workedIcon}${story.title}</div>
                     <div>
                         <button class="mini-btn" style="background:transparent; color:var(--secondary-color);" onclick="event.stopPropagation(); showPrompt('${story.prompt || "Bilgi yok."}')"><i class="fa-solid fa-circle-question"></i></button>
                         <button class="mini-btn" style="background:transparent; color:#cf6679;" onclick="event.stopPropagation(); deleteStory(${story.id})"><i class="fa-solid fa-trash"></i></button>
@@ -212,6 +227,10 @@ document.addEventListener('DOMContentLoaded', () => {
     window.sendToLab = (id) => {
         const story = storyVault.find(s => s.id === id);
         if(story) {
+            story.isWorked = true; // Çalışıldı olarak işaretle
+            localStorage.setItem('myStories', JSON.stringify(storyVault));
+            renderStoryList(); // Renk değişimi için listeyi yenile
+            
             document.querySelector('[data-target="tab-lab"]').click();
             prepareLabText(story.content);
         }
@@ -245,6 +264,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         sentences.forEach((sentText) => {
             const cleanSent = sentText.trim();
+            if(!cleanSent) return;
             const block = document.createElement('div'); block.className = 'sentence-block';
             
             const textSpan = document.createElement('span'); textSpan.className = 'sentence-text'; textSpan.innerText = cleanSent;
@@ -344,19 +364,38 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('drawer-title').innerText = action === 'extract-all' ? "Tüm Hikaye Analizi" : sentence;
 
         if (action === 'extract' || action === 'extract-all') {
-            document.getElementById('drawer-action-name').innerText = action === 'extract-all' ? "Tüm Hikayedeki Kelimeler Ayıklanıyor" : "Kelimeler Ayıklanıyor";
+            document.getElementById('drawer-action-name').innerText = action === 'extract-all' ? "Tüm Hikayedeki Kelimeler" : "Kelimeler Ayıklanıyor";
             chatContainer.classList.add('hidden'); extractionContainer.classList.remove('hidden');
             document.getElementById('btn-save-extracted').classList.add('hidden'); 
             
+            // Tümünü Seç kutucuğunu sıfırla
+            const chkSelectAll = document.getElementById('chk-select-all');
+            if (chkSelectAll) chkSelectAll.checked = false;
+
             if (action === 'extract-all') {
-                extractionList.innerHTML = "<div style='padding:20px; text-align:center;'>Tüm hikaye derinlemesine analiz ediliyor (Metnin uzunluğuna göre bu işlem biraz sürebilir), lütfen bekleyin...</div>";
-                const cacheKey = `extract_all_${studyLang}_${sentence.substring(0,40)}`;
-                const prompt = `Şu ${studyLang} dilindeki TÜM METİNDE geçen BÜTÜN YENİ VE ÖNEMLİ KELİMELERİ yeni başlayan biri için DETAYLI analiz et: "${sentence}".
-                SADECE JSON dizisi döndür. 
-                'details' alanında veriyi <b>, <ul>, <li>, <br> HTML etiketleriyle maddeler halinde, kalın vurgularla BİÇİMLENDİR.
-                Format: [{"word": "İsimse ARTIKELİYLE, Fiilse mastar", "translation": "Türkçesi", "pos": "isim/fiil vs.", "details": "HTML Biçimli Detaylı Çekimler", "example": "Metinden Örnek", "example_tr": "Örnek çevirisi"}]`;
-                const response = await callGemini(cacheKey, prompt, true);
-                renderExtractionList(response, sentence);
+                // YAPAY ZEKAYA YENİDEN SORMADAN, ARKA PLANDAKİ VERİLERİ TOPLA
+                let allWords = [];
+                let wordSet = new Set();
+                
+                for (const [sent, data] of Object.entries(currentStoryAnalysisData)) {
+                    if (data && data.words) {
+                        data.words.forEach(w => {
+                            let key = w.word.toLowerCase().trim();
+                            if (!wordSet.has(key)) { // Tekrar edenleri filtrele
+                                wordSet.add(key);
+                                let cloneW = {...w};
+                                if (!cloneW.example) cloneW.example = sent;
+                                allWords.push(cloneW);
+                            }
+                        });
+                    }
+                }
+
+                if (allWords.length > 0) {
+                    renderExtractionList(JSON.stringify(allWords), "Tüm Hikaye");
+                } else {
+                    extractionList.innerHTML = "<div style='padding:20px; text-align:center;'>Kelime bulunamadı veya analiz henüz tamamlanmadı. Lütfen sağ üstteki analizin bitmesini bekleyip tekrar deneyin.</div>";
+                }
             }
             else if (hasPreData && preData.words) {
                 renderExtractionList(JSON.stringify(preData.words), sentence);
@@ -571,7 +610,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- TÜM VERİLERİ (FULL BACKUP) İNDİR VE YÜKLE ---
     document.getElementById('btn-export-vault').addEventListener('click', () => {
         const fullBackup = {
             vault: vault,
@@ -600,11 +638,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 const importedData = JSON.parse(e.target.result);
                 
                 if (Array.isArray(importedData)) {
-                    // Sadece eski tip kelime yedeği
                     vault = importedData; sessionVault = [...vault]; localStorage.setItem('myVault', JSON.stringify(vault));
                     currentCardIndex = 0; alert("Eski tip kelime yedeği yüklendi!"); renderVaultList(); renderFlashcard();
                 } else if (importedData.vault !== undefined) {
-                    // Yeni tip TAM YEDEK
                     if(confirm("Bu işlem mevcut tüm hikaye, kelime ve sohbetlerini silecek ve yedekteki verileri yükleyecek. Emin misin?")) {
                         localStorage.setItem('myVault', JSON.stringify(importedData.vault || []));
                         localStorage.setItem('myStories', JSON.stringify(importedData.storyVault || []));
