@@ -13,32 +13,36 @@
         <section id="tab-studio" class="tab-section active">
             <h2><i class="fa-solid fa-pen-nib"></i> Stüdyo</h2>
             <div class="ai-input-group">
-                <input type="text" id="story-prompt" placeholder="Örn: A1 seviyesinde bir orman hikayesi yaz...">
-                <button id="btn-generate-story" class="action-btn">Hikaye Oluştur</button>
+                <input type="text" id="story-prompt" placeholder="Örn: Ormanda kaybolan bir çocuk hakkında...">
+                <button id="btn-generate-story" class="action-btn">Metin Oluştur</button>
             </div>
             <div id="generated-story-display" class="reading-text" style="display:none; margin-top:20px;"></div>
         </section>
 
         <section id="tab-lab" class="tab-section">
             <h2><i class="fa-solid fa-microscope"></i> Laboratuvar</h2>
-            <div id="text-container" class="reading-text">Stüdyo'da bir hikaye oluşturun veya buraya metin yapıştırın.</div>
+            <div id="text-container" class="reading-text">Stüdyo'da bir metin oluşturun...</div>
 
             <div id="word-bubble">
                 <div class="bubble-content"><span id="bubble-translation">...</span></div>
                 <div class="bubble-actions">
                     <button id="btn-speak"><i class="fa-solid fa-volume-high"></i></button>
                     <button id="btn-save"><i class="fa-solid fa-star"></i></button>
-                    <button id="btn-grammar"><i class="fa-solid fa-magnifying-glass"></i></button>
                 </div>
                 <div class="bubble-arrow"></div>
             </div>
 
             <div id="ai-drawer" class="drawer hidden">
                 <div class="drawer-header">
-                    <span>Gramer Analizi</span>
+                    <span id="drawer-title">AI Asistan</span>
                     <button id="close-drawer"><i class="fa-solid fa-xmark"></i></button>
                 </div>
-                <div id="ai-response-content" class="drawer-content">Analiz yükleniyor...</div>
+                <div id="ai-response-content" class="drawer-content">
+                    </div>
+                <div class="drawer-input-area">
+                    <input type="text" id="drawer-chat-input" placeholder="Bu cümle hakkında detay sor...">
+                    <button id="btn-drawer-send"><i class="fa-solid fa-paper-plane"></i></button>
+                </div>
             </div>
         </section>
 
@@ -46,9 +50,7 @@
             <div class="top-sub-nav">
                 <button class="sub-nav-btn active" data-sub="sub-kelimeler">Kelimeler</button>
                 <button class="sub-nav-btn" data-sub="sub-gramer">Gramer</button>
-                <button class="sub-nav-btn" data-sub="sub-hafiza">Hafıza</button>
             </div>
-            
             <div class="sub-content-area">
                 <div id="sub-kelimeler" class="sub-section active">
                     <div class="section-header">
@@ -60,15 +62,8 @@
                     </div>
                     <div id="vault-list"></div>
                 </div>
-
                 <div id="sub-gramer" class="sub-section">
-                    <h3><i class="fa-solid fa-book"></i> Gramer Notları</h3>
-                    <p style="margin-top:15px; opacity:0.6;">Gemini'den kaydettiğin notlar burada yer alacak.</p>
-                </div>
-
-                <div id="sub-hafiza" class="sub-section">
-                    <h3><i class="fa-solid fa-brain"></i> Hafıza Kontrolü</h3>
-                    <p style="margin-top:15px; opacity:0.6;">Yapay zekanın neleri hatırlayacağını buradan yönet.</p>
+                    <h3>Gramer Notları (Çok Yakında)</h3>
                 </div>
             </div>
         </section>
@@ -76,36 +71,32 @@
         <section id="tab-settings" class="tab-section">
             <h2><i class="fa-solid fa-gear"></i> Ayarlar</h2>
             <div class="settings-card">
-                <div class="setting-item">
-                    <div class="setting-info"><strong>Kullanıcı Girişi</strong><span>Verilerini senkronize et</span></div>
-                    <button class="action-btn mini"><i class="fa-brands fa-google"></i> Giriş</button>
-                </div>
                 <div class="setting-item api-box">
                     <strong>Gemini API Anahtarı</strong>
                     <input type="password" id="api-key-input" placeholder="AIzaSy...">
                     <button id="btn-save-key" class="action-btn">Kaydet</button>
                 </div>
+                
+                <div class="setting-item">
+                    <div class="setting-info"><strong>Ana Dil</strong><span>Senin anladığın dil</span></div>
+                    <select id="native-language" class="styled-select">
+                        <option value="Türkçe" selected>Türkçe</option>
+                        <option value="İngilizce">İngilizce</option>
+                    </select>
+                </div>
+
+                <div class="setting-item">
+                    <div class="setting-info"><strong>Öğrenilen Dil</strong><span>Hedef dil</span></div>
+                    <select id="study-language" class="styled-select">
+                        <option value="Almanca" selected>Almanca</option>
+                        <option value="İngilizce">İngilizce</option>
+                        <option value="İspanyolca">İspanyolca</option>
+                    </select>
+                </div>
+
                 <div class="setting-item">
                     <div class="setting-info"><strong>Görünüm</strong><span>Koyu / Açık Tema</span></div>
                     <button id="theme-toggle" class="action-btn mini">Değiştir</button>
-                </div>
-                <div class="setting-item">
-                    <div class="setting-info"><strong>Çalışma Dili</strong><span>Öğrenmek istediğin dil</span></div>
-                    <select id="study-language" class="styled-select">
-                        <option value="de" selected>Almanca</option>
-                        <option value="en">İngilizce</option>
-                    </select>
-                </div>
-                <div class="setting-item">
-                    <div class="setting-info"><strong>Okuma Boyutu</strong><span>Yazı büyüklüğünü ayarla</span></div>
-                    <input type="range" id="text-size" min="14" max="24" value="18">
-                </div>
-                <div class="setting-item">
-                    <div class="setting-info"><strong>Yapay Zeka Sesi</strong><span>Okuyucu tonunu seç</span></div>
-                    <select id="ai-voice" class="styled-select">
-                        <option value="female">Marlene (Kadın)</option>
-                        <option value="male">Hans (Erkek)</option>
-                    </select>
                 </div>
             </div>
         </section>
