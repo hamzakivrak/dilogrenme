@@ -7,6 +7,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>AI Dil Asistanı Pro</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#121212">
+    
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -40,8 +43,7 @@
                     <span id="drawer-title">AI Asistan</span>
                     <button id="close-drawer"><i class="fa-solid fa-xmark"></i></button>
                 </div>
-                <div id="ai-response-content" class="drawer-content">
-                    </div>
+                <div id="ai-response-content" class="drawer-content"></div>
                 <div class="drawer-input-area">
                     <input type="text" id="drawer-chat-input" placeholder="Bu cümle hakkında detay sor...">
                     <button id="btn-drawer-send"><i class="fa-solid fa-paper-plane"></i></button>
@@ -113,5 +115,13 @@
     </nav>
 
     <script src="app.js"></script>
+    
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js');
+        });
+      }
+    </script>
 </body>
 </html>
