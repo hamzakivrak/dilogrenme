@@ -23,8 +23,12 @@ document.addEventListener('DOMContentLoaded', () => {
     let storyVault = JSON.parse(localStorage.getItem('myStories')) || []; 
     let sessionVault = [...vault]; 
     let currentCardIndex = 0;
+    
     let aiCache = JSON.parse(localStorage.getItem('dil_ai_cache')) || {}; 
+    let chatHistoryVault = JSON.parse(localStorage.getItem('dil_chat_history')) || {}; // SOHBET GEÇMİŞİ KASASI
+
     let currentDrawerContext = ""; 
+    let currentDrawerAction = ""; // Chat History için action takibi
     let currentStoryAnalysisData = {}; 
 
     if (document.getElementById('native-language')) document.getElementById('native-language').value = nativeLang;
@@ -42,7 +46,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const target = btn.getAttribute('data-target');
         document.getElementById(target).classList.add('active');
         
-        // Havuz Tabına basıldığında her zaman Kartları (Eğitim Kartları) aç
         if (target === 'tab-vocab') { 
             document.querySelector('[data-sub="sub-kelimeler"]').click(); 
             renderVaultList(); renderFlashcard(); 
@@ -58,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById(btn.getAttribute('data-sub')).classList.remove('hidden');
     }));
 
-    // --- AYARLAR ---
+    // --- AYARLAR VE GELİŞMİŞ HAFIZA SİLİCİ ---
     document.getElementById('btn-save-key').addEventListener('click', () => {
         const keysInput = document.getElementById('api-key-input').value.trim();
         if (keysInput) { 
@@ -72,9 +75,38 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('native-language').addEventListener('change', (e) => { nativeLang = e.target.value; localStorage.setItem('nativeLang', nativeLang); });
     document.getElementById('study-language').addEventListener('change', (e) => { studyLang = e.target.value; localStorage.setItem('studyLang', studyLang); });
     
-    document.getElementById('btn-clear-cache').addEventListener('click', () => {
-        if(confirm("AI hafızası silinecek (Kayıtlı kelimelerin ve HİKAYELERİN silinmez). Emin misin?")) {
-            aiCache = {}; localStorage.setItem('dil_ai_cache', JSON.stringify(aiCache)); alert("Hafıza temizlendi!");
+    // Gelişmiş Silme Modalı Açılış Kapanış
+    document.getElementById('btn-open-delete-modal').addEventListener('click', () => {
+        document.getElementById('delete-modal').classList.remove('hidden');
+    });
+    document.getElementById('btn-cancel-del').addEventListener('click', () => {
+        document.getElementById('delete-modal').classList.add('hidden');
+    });
+
+    document.getElementById('btn-confirm-del').addEventListener('click', () => {
+        const delCache = document.getElementById('chk-del-cache').checked;
+        const delChat = document.getElementById('chk-del-chat').checked;
+        const delStories = document.getElementById('chk-del-stories').checked;
+        const delVault = document.getElementById('chk-del-vault').checked;
+
+        if (!delCache && !delChat && !delStories && !delVault) {
+            alert("Lütfen silmek için listeden en az bir öğe seçin."); return;
+        }
+
+        if(confirm("Seçtiğin veriler tamamen silinecek ve bu işlem GERİ ALINAMAZ. Emin misin?")) {
+            if (delCache) { aiCache = {}; localStorage.setItem('dil_ai_cache', JSON.stringify(aiCache)); }
+            if (delChat) { chatHistoryVault = {}; localStorage.setItem('dil_chat_history', JSON.stringify(chatHistoryVault)); }
+            if (delStories) { storyVault = []; localStorage.setItem('myStories', JSON.stringify(storyVault)); renderStoryList(); }
+            if (delVault) { vault = []; sessionVault = []; localStorage.setItem('myVault', JSON.stringify(vault)); currentCardIndex = 0; renderVaultList(); renderFlashcard(); }
+            
+            alert("Seçilen veriler cihazınızdan başarıyla silindi!");
+            document.getElementById('delete-modal').classList.add('hidden');
+            
+            // Seçimleri temizle
+            document.getElementById('chk-del-cache').checked = false;
+            document.getElementById('chk-del-chat').checked = false;
+            document.getElementById('chk-del-stories').checked = false;
+            document.getElementById('chk-del-vault').checked = false;
         }
     });
 
@@ -82,7 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.playAudio = (text, languageName) => {
         if(!text) return;
         const ut = new SpeechSynthesisUtterance(text);
-        let langCode = 'de-DE'; // Default
+        let langCode = 'de-DE'; 
         if(languageName === 'İngilizce') langCode = 'en-US';
         else if(languageName === 'İspanyolca') langCode = 'es-ES';
         else if(languageName === 'Fransızca') langCode = 'fr-FR';
@@ -121,7 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
         alert("Kotan doldu!"); return null;
     }
 
-    // --- STÜDYO: HİKAYE ÜRETİMİ (GİZLENEBİLİR YAPI) ---
+    // --- STÜDYO: HİKAYE ÜRETİMİ ---
     document.getElementById('btn-generate-story').addEventListener('click', async () => {
         const input = document.getElementById('story-prompt').value.trim();
         const count = document.getElementById('story-count').value || 1;
@@ -168,13 +200,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Hikaye Gizle/Göster
     window.toggleStory = (id) => {
         const contentBox = document.getElementById(`story-content-${id}`);
         if (contentBox.classList.contains('hidden')) {
-            document.querySelectorAll('.story-content-box').forEach(el => el.classList.add('hidden')); // Diğerlerini kapat
+            document.querySelectorAll('.story-content-box').forEach(el => el.classList.add('hidden')); 
             contentBox.classList.remove('hidden');
-            history.pushState({ storyOpen: id }, ""); // Geri tuşu için
+            history.pushState({ storyOpen: id }, ""); 
         } else {
             contentBox.classList.add('hidden');
         }
@@ -191,13 +222,28 @@ document.addEventListener('DOMContentLoaded', () => {
     window.showPrompt = (promptText) => { alert("Bu hikaye şu komutla oluşturuldu:\n\n" + promptText); };
     window.deleteStory = (id) => { if(confirm("Hikayeyi silmek istediğine emin misin?")) { storyVault = storyVault.filter(s => s.id !== id); localStorage.setItem('myStories', JSON.stringify(storyVault)); renderStoryList(); } };
 
-    // --- LAB: CÜMLE ANALİZİ ---
+    // --- LAB: CÜMLE ANALİZİ VE TÜM HİKAYE AYIKLAMA ---
     async function prepareLabText(text, isRestore = false) {
         sessionStorage.setItem('activeLabText', text);
         currentStoryAnalysisData = {}; 
         const labContainer = document.getElementById('text-container');
         labContainer.innerHTML = '';
         
+        // YENİ: En tepede "Tüm Hikayedeki Kelimeleri Ayıkla" butonu
+        const topActionsDiv = document.createElement('div');
+        topActionsDiv.style.marginBottom = "25px";
+        topActionsDiv.style.textAlign = "center";
+        
+        const btnExtractAll = document.createElement('button');
+        btnExtractAll.className = 'action-btn';
+        btnExtractAll.style.width = "100%";
+        btnExtractAll.style.padding = "15px";
+        btnExtractAll.innerHTML = '<i class="fa-solid fa-list-check"></i> Tüm Hikayedeki Kelimeleri Ayıkla';
+        btnExtractAll.addEventListener('click', () => openDrawer(text, 'extract-all'));
+        
+        topActionsDiv.appendChild(btnExtractAll);
+        labContainer.appendChild(topActionsDiv);
+
         const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
 
         sentences.forEach((sentText) => {
@@ -209,7 +255,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const actionsDiv = document.createElement('div'); actionsDiv.className = 'sentence-actions';
             
-            // TTS Butonu Eklendi
             const btnTTS = document.createElement('button'); btnTTS.className = 'btn-action-sm action-tts'; btnTTS.innerHTML = '<i class="fa-solid fa-volume-high"></i> Dinle';
             btnTTS.addEventListener('click', () => playAudio(cleanSent, studyLang));
 
@@ -290,6 +335,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function openDrawer(sentence, action) {
         currentDrawerContext = sentence;
+        currentDrawerAction = action; // Sohbetleri ayırmak için action'u kaydediyoruz
         
         if (drawer.classList.contains('hidden')) {
             history.pushState({ drawerOpen: true }, "");
@@ -299,47 +345,68 @@ document.addEventListener('DOMContentLoaded', () => {
         const preData = currentStoryAnalysisData[sentence];
         const hasPreData = preData !== undefined;
 
-        document.getElementById('drawer-title').innerText = sentence;
+        document.getElementById('drawer-title').innerText = action === 'extract-all' ? "Tüm Hikaye Analizi" : sentence;
 
-        if (action === 'extract') {
-            document.getElementById('drawer-action-name').innerText = "Kelimeler Ayıklanıyor";
+        if (action === 'extract' || action === 'extract-all') {
+            document.getElementById('drawer-action-name').innerText = action === 'extract-all' ? "Tüm Hikayedeki Kelimeler Ayıklanıyor" : "Kelimeler Ayıklanıyor";
             chatContainer.classList.add('hidden'); extractionContainer.classList.remove('hidden');
             document.getElementById('btn-save-extracted').classList.add('hidden'); 
             
-            if (hasPreData && preData.words) {
+            if (action === 'extract-all') {
+                extractionList.innerHTML = "<div style='padding:20px; text-align:center;'>Tüm hikaye derinlemesine analiz ediliyor (Metnin uzunluğuna göre bu işlem biraz sürebilir), lütfen bekleyin...</div>";
+                const cacheKey = `extract_all_${studyLang}_${sentence.substring(0,40)}`;
+                const prompt = `Şu ${studyLang} dilindeki TÜM METİNDE geçen BÜTÜN YENİ VE ÖNEMLİ KELİMELERİ yeni başlayan biri için DETAYLI analiz et: "${sentence}".
+                SADECE JSON dizisi döndür. 
+                'details' alanında veriyi <b>, <ul>, <li>, <br> HTML etiketleriyle maddeler halinde, kalın vurgularla BİÇİMLENDİR.
+                Format: [{"word": "İsimse ARTIKELİYLE, Fiilse mastar", "translation": "Türkçesi", "pos": "isim/fiil vs.", "details": "HTML Biçimli Detaylı Çekimler", "example": "Metinden Örnek", "example_tr": "Örnek çevirisi"}]`;
+                const response = await callGemini(cacheKey, prompt, true);
+                renderExtractionList(response, sentence);
+            }
+            else if (hasPreData && preData.words) {
                 renderExtractionList(JSON.stringify(preData.words), sentence);
             } else {
                 extractionList.innerHTML = "<div style='padding:20px; text-align:center;'>Derin analiz yapılıyor, lütfen bekleyin...</div>";
                 const cacheKey = `extract_${studyLang}_${sentence.substring(0,30)}`;
                 const prompt = `Şu ${studyLang} cümlesindeki tüm kelimeleri yeni başlayan biri için DETAYLI analiz et: "${sentence}".
-                SADECE JSON dizisi döndür. 
-                'details' alanında veriyi <b>, <ul>, <li>, <br> HTML etiketleriyle maddeler halinde, kalın vurgularla BİÇİMLENDİR.
-                Format: [{"word": "İsimse ARTIKELİYLE, Fiilse mastar", "translation": "Türkçesi", "pos": "isim/fiil vs.", "details": "HTML Biçimli Detaylı Çekimler", "example": "Örnek", "example_tr": "Örnek çevirisi"}]`;
+                SADECE JSON dizisi döndür. 'details' alanında veriyi HTML etiketleriyle BİÇİMLENDİR.
+                Format: [{"word": "İsimse ARTIKELİYLE, Fiilse mastar", "translation": "Türkçesi", "pos": "isim/fiil vs.", "details": "HTML Biçimli", "example": "Örnek", "example_tr": "Çevirisi"}]`;
                 const response = await callGemini(cacheKey, prompt, true);
                 renderExtractionList(response, sentence);
             }
         } else {
             extractionContainer.classList.add('hidden'); chatContainer.classList.remove('hidden'); chatContent.innerHTML = ''; 
             
+            let mainResponseAdded = false;
+
             if (action === 'translate') {
                 document.getElementById('drawer-action-name').innerText = "Cümle Çevirisi";
-                if (hasPreData && preData.translation) { addChatMessage(preData.translation, 'ai'); return; }
+                if (hasPreData && preData.translation) { addChatMessage(preData.translation, 'ai'); mainResponseAdded = true; }
             } else {
                 document.getElementById('drawer-action-name').innerText = "Gramer Analizi";
-                if (hasPreData && preData.grammar) { addChatMessage(preData.grammar, 'ai'); return; }
+                if (hasPreData && preData.grammar) { addChatMessage(preData.grammar, 'ai'); mainResponseAdded = true; }
             }
             
-            let prompt = ""; let cacheKey = "";
-            if (action === 'translate') {
-                cacheKey = `trans_${studyLang}_${sentence.substring(0,30)}`; prompt = `Şu ${studyLang} cümlesini ${nativeLang} diline çevir: "${sentence}"`;
-            } else {
-                cacheKey = `gram_${studyLang}_${sentence.substring(0,30)}`; prompt = `Şu cümlenin dilbilgisini yeni başlayan bir öğrenci için ÇOK DETAYLI Türkçe açıkla. Fiil varsa zamanını ve tüm zamirlere göre çekimini yaz. İsimlerin artikellerini belirt. Edat varsa durumunu açıkla. 
-                CEVABI HTML FORMATINDA VER: <b>, <ul>, <li>, <br> kullanarak cevabını çok şık, maddeler halinde ve kolay okunabilir şekilde biçimlendir. Düz metin YAZMA: "${sentence}"`;
+            if (!mainResponseAdded) {
+                let prompt = ""; let cacheKey = "";
+                if (action === 'translate') {
+                    cacheKey = `trans_${studyLang}_${sentence.substring(0,30)}`; prompt = `Şu ${studyLang} cümlesini ${nativeLang} diline çevir: "${sentence}"`;
+                } else {
+                    cacheKey = `gram_${studyLang}_${sentence.substring(0,30)}`; prompt = `Şu cümlenin dilbilgisini yeni başlayan bir öğrenci için ÇOK DETAYLI Türkçe açıkla. Fiil varsa zamanını ve tüm zamirlere göre çekimini yaz. İsimlerin artikellerini belirt. Edat varsa durumunu açıkla. 
+                    CEVABI HTML FORMATINDA VER: <b>, <ul>, <li>, <br> kullanarak cevabını çok şık, maddeler halinde ve kolay okunabilir şekilde biçimlendir. Düz metin YAZMA: "${sentence}"`;
+                }
+                
+                addChatMessage("Öğretmen analiz ediyor...", 'ai');
+                const response = await callGemini(cacheKey, prompt, false);
+                chatContent.innerHTML = ''; addChatMessage(response || "Hata oluştu.", 'ai');
             }
-            
-            addChatMessage("Öğretmen analiz ediyor...", 'ai');
-            const response = await callGemini(cacheKey, prompt, false);
-            chatContent.innerHTML = ''; addChatMessage(response || "Hata oluştu.", 'ai');
+
+            // SOHBET GEÇMİŞİNİ (VARSA) ALTINA YÜKLE
+            if (chatHistoryVault[sentence] && chatHistoryVault[sentence][action]) {
+                chatHistoryVault[sentence][action].forEach(chat => {
+                    addChatMessage(chat.q, 'user');
+                    addChatMessage(chat.a, 'ai');
+                });
+            }
         }
     }
 
@@ -350,7 +417,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    function renderExtractionList(jsonString, sentence) {
+    function renderExtractionList(jsonString, contextText) {
         if (!jsonString) { extractionList.innerHTML = "Veri çekilemedi."; return; }
         try {
             const words = JSON.parse(jsonString);
@@ -358,9 +425,12 @@ document.addEventListener('DOMContentLoaded', () => {
             
             words.forEach(item => {
                 const row = document.createElement('div'); row.className = 'extracted-row';
+                // contextText tüm metinse example çok uzun olabilir, onu kontrol ediyoruz
+                const safeExample = item.example || (contextText.length > 100 ? "Metinden örnek" : contextText);
+
                 const safeData = encodeURIComponent(JSON.stringify({
                     id: Date.now() + Math.floor(Math.random()*1000), lang: studyLang, frontWord: item.word, pos: item.pos,
-                    regularity: item.details, example: item.example || sentence, backTranslation: item.translation, backExample: item.example_tr || "-"
+                    regularity: item.details, example: safeExample, backTranslation: item.translation, backExample: item.example_tr || "-"
                 }));
 
                 row.innerHTML = `
@@ -408,11 +478,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const answer = await callGemini(null, prompt, false); 
         loadingDiv.remove(); addChatMessage(answer || "Yanıt alınamadı.", 'ai');
+
+        // SOHBET GEÇMİŞİNİ KAYDET
+        if (answer) {
+            if (!chatHistoryVault[currentDrawerContext]) chatHistoryVault[currentDrawerContext] = {};
+            if (!chatHistoryVault[currentDrawerContext][currentDrawerAction]) chatHistoryVault[currentDrawerContext][currentDrawerAction] = [];
+            
+            chatHistoryVault[currentDrawerContext][currentDrawerAction].push({ q: question, a: answer });
+            localStorage.setItem('dil_chat_history', JSON.stringify(chatHistoryVault));
+        }
     });
 
     function addChatMessage(text, sender) {
         const msgDiv = document.createElement('div'); msgDiv.className = `chat-msg chat-${sender}`;
-        msgDiv.innerHTML = text; // HTML Formatında basıyoruz
+        msgDiv.innerHTML = text; 
         chatContent.appendChild(msgDiv); chatContent.scrollTop = chatContent.scrollHeight;
     }
 
@@ -436,8 +515,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('card-counter').innerText = `${currentCardIndex + 1} / ${sessionVault.length}`;
         const cardData = sessionVault[currentCardIndex];
 
-        // Ön Yüz: Kelime, Tür, Orijinal Cümle, TTS Butonu
-        // Arka Yüz: Türkçe Çeviri, Gramer Detayı, Türkçe Cümle
         container.innerHTML = `
             <div class="flashcard" onclick="this.classList.toggle('flipped')">
                 <div class="card-face card-front">
@@ -459,28 +536,21 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-prev-card').addEventListener('click', () => { if (currentCardIndex > 0) { currentCardIndex--; renderFlashcard(); } });
     document.getElementById('btn-next-card').addEventListener('click', () => { if (currentCardIndex < sessionVault.length - 1) { currentCardIndex++; renderFlashcard(); } });
 
-    // Havuz Ekranı Swipe (Kartlar ve Liste Arası Geçiş + Kart Değiştirme)
     let touchstartX = 0; let touchendX = 0;
-    
-    // Tüm Havuz Ekranında (Tab) Sağ/Sol Kaydırma Dinleyicisi
     const vocabTab = document.getElementById('tab-vocab');
-    vocabTab.addEventListener('touchstart', e => { 
-        touchstartX = e.changedTouches[0].screenX; 
-    }, {passive: true});
+    vocabTab.addEventListener('touchstart', e => { touchstartX = e.changedTouches[0].screenX; }, {passive: true});
     
     vocabTab.addEventListener('touchend', e => {
         touchendX = e.changedTouches[0].screenX;
-        let isInsideCard = e.target.closest('.flashcard-container'); // Kartın içindeyse kartı değiştir
+        let isInsideCard = e.target.closest('.flashcard-container'); 
         
         if (touchendX < touchstartX - 60) {
-            // Sola Kaydır
             if (isInsideCard) document.getElementById('btn-next-card').click();
-            else document.querySelector('[data-sub="sub-liste"]').click(); // Listeye geç
+            else document.querySelector('[data-sub="sub-liste"]').click(); 
         }
         if (touchendX > touchstartX + 60) {
-            // Sağa Kaydır
             if (isInsideCard) document.getElementById('btn-prev-card').click();
-            else document.querySelector('[data-sub="sub-kelimeler"]').click(); // Kartlara geç
+            else document.querySelector('[data-sub="sub-kelimeler"]').click(); 
         }
     }, {passive: true});
 
