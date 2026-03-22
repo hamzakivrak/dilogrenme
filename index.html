@@ -9,7 +9,7 @@
     <title>AI Dil Asistanı Pro</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#121212">
-    <link rel="stylesheet" href="style.css?v=13">
+    <link rel="stylesheet" href="style.css?v=14">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
@@ -52,14 +52,16 @@
                 </div>
                 
                 <div id="extraction-container" class="drawer-content hidden" style="padding-bottom: 20px;">
+                    <button id="btn-save-extracted" class="action-btn hidden" style="margin-bottom: 15px; width: 100%; box-shadow: 0 4px 15px rgba(0,0,0,0.3);"><i class="fa-solid fa-star"></i> Seçilenleri Havuza At</button>
+                    
                     <div id="extract-header-actions" class="hidden" style="margin-bottom: 15px; background: rgba(187, 134, 252, 0.1); padding: 12px; border-radius: 10px; border: 1px solid rgba(187, 134, 252, 0.3);">
                         <label style="cursor:pointer; display:flex; align-items:center; gap:10px; font-weight:bold; color:var(--primary-color); font-size:15px;">
                             <input type="checkbox" id="chk-select-all" style="width:20px; height:20px; accent-color:var(--primary-color);"> 
                             <span>Tümünü Seç / Kaldır</span>
                         </label>
                     </div>
+                    
                     <div id="extraction-list"></div>
-                    <button id="btn-save-extracted" class="action-btn hidden" style="margin-top: 15px; width: 100%;"><i class="fa-solid fa-star"></i> Seçilenleri Havuza At</button>
                 </div>
 
                 <div id="chat-container" class="drawer-content">
