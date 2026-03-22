@@ -137,9 +137,15 @@ body.theme-light .card-face, body.theme-ice .card-face, body.theme-cotton .card-
 .hidden { display: none !important; }
 
 /* Modallar */
-.modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 2000; backdrop-filter: blur(5px); }
-.modal-content { background: var(--surface-color); padding: 25px; border-radius: 15px; width: 90%; max-width: 400px; border: 1px solid rgba(128,128,128,0.3); box-shadow: 0 10px 30px rgba(0,0,0,0.5); max-height: 85vh; overflow-y: auto;}
+.modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 2000; backdrop-filter: blur(5px); padding: 15px;}
+.modal-content { background: var(--surface-color); padding: 25px; border-radius: 15px; width: 100%; max-width: 450px; border: 1px solid rgba(128,128,128,0.3); box-shadow: 0 10px 30px rgba(0,0,0,0.5); max-height: 85vh; overflow-y: auto;}
 .modal-content h3 { margin-bottom: 15px; color: var(--primary-color); }
-.modal-content p { font-size: 14px; margin-bottom: 15px; color: var(--text-color); opacity: 0.9; }
+.modal-content p { font-size: 14px; margin-bottom: 15px; color: var(--text-color); opacity: 0.9; line-height: 1.5;}
 .modal-content label { display: block; margin-bottom: 12px; font-size: 15px; cursor: pointer; }
 .modal-content input[type="checkbox"] { margin-right: 10px; accent-color: var(--primary-color); transform: scale(1.2); }
+
+/* Rehber Stilleri */
+.guide-step { margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid rgba(128,128,128,0.2); }
+.guide-step strong { display: block; color: var(--secondary-color); margin-bottom: 5px; font-size: 16px;}
+.guide-step ul { margin-left: 20px; margin-top: 5px; }
+.guide-step li { margin-bottom: 5px; font-size: 14px; color: var(--text-color); opacity: 0.9;}
