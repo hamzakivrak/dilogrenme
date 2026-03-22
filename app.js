@@ -1,5 +1,17 @@
 document.addEventListener('DOMContentLoaded', () => {
     
+    // -- TEMA DÖNGÜSÜ --
+    const themes = ['', 'theme-light', 'theme-fire', 'theme-ocean'];
+    let currentThemeIndex = parseInt(localStorage.getItem('dil_theme_index')) || 0;
+    if (themes[currentThemeIndex]) document.body.classList.add(themes[currentThemeIndex]);
+
+    document.getElementById('theme-toggle').addEventListener('click', () => {
+        document.body.className = ''; 
+        currentThemeIndex = (currentThemeIndex + 1) % themes.length;
+        if (themes[currentThemeIndex]) document.body.classList.add(themes[currentThemeIndex]);
+        localStorage.setItem('dil_theme_index', currentThemeIndex);
+    });
+
     // --- GLOBAL DEĞİŞKENLER VE HAFIZA ---
     let rawKeys = localStorage.getItem('gemini_api_keys') || "";
     let API_KEYS = rawKeys ? rawKeys.split(',').map(k => k.trim()).filter(k => k !== "") : [];
@@ -9,13 +21,14 @@ document.addEventListener('DOMContentLoaded', () => {
     let studyLang = localStorage.getItem('studyLang') || "Almanca";
     let vault = JSON.parse(localStorage.getItem('myVault')) || [];
     
-    // YENİ: Kalıcı Hikaye Kütüphanesi KASASI
+    // Kalıcı Hikaye Kütüphanesi KASASI
     let storyVault = JSON.parse(localStorage.getItem('myStories')) || []; 
     
     let sessionVault = [...vault]; 
     let currentCardIndex = 0;
     let aiCache = JSON.parse(localStorage.getItem('dil_ai_cache')) || {}; 
     let currentDrawerContext = ""; 
+    let currentStoryAnalysisData = {}; // Arka planda çekilen verilerin tutulacağı RAM hafızası
 
     if (document.getElementById('native-language')) document.getElementById('native-language').value = nativeLang;
     if (document.getElementById('study-language')) document.getElementById('study-language').value = studyLang;
@@ -69,7 +82,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- AKILLI VE HAFIZALI AI MOTORU ---
     async function callGemini(cacheKey, prompt, expectJson = false) {
-        // CacheKey gönderildiyse ve hafızada varsa internete bağlanma
         if (cacheKey && aiCache[cacheKey]) {
             console.log("Hafızadan getirildi:", cacheKey);
             return aiCache[cacheKey]; 
@@ -107,7 +119,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (data.candidates && data.candidates[0]) {
                     let resultText = data.candidates[0].content.parts[0].text;
                     
-                    // Sadece cacheKey gönderilenleri (Örn: Kelime Analizleri) AI hafızasına al
                     if (cacheKey) {
                         aiCache[cacheKey] = resultText;
                         try { localStorage.setItem('dil_ai_cache', JSON.stringify(aiCache)); } 
@@ -135,7 +146,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const prompt = `Lütfen "${input}" konusunda, ${studyLang} dilinde A1-A2 seviyesinde ${count} adet farklı kısa hikaye yaz. 
         SADECE JSON formatında bir dizi (array) döndür. Format: [{"title": "Hikaye Başlığı", "content": "Hikaye metni..."}]`;
 
-        // YENİ: Hikayeler için cacheKey "null" gönderiliyor, böylece her tıklamada YENİ hikayeler çekilir.
         const responseText = await callGemini(null, prompt, true);
         
         btn.innerText = "Hikaye Üret";
@@ -145,7 +155,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const stories = JSON.parse(responseText);
-            // Üretilen her hikayeyi kalıcı kasaya kaydet
             stories.forEach(story => {
                 storyVault.unshift({
                     id: Date.now() + Math.floor(Math.random() * 1000),
@@ -155,13 +164,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             });
             localStorage.setItem('myStories', JSON.stringify(storyVault));
-            renderStoryList(); // Kütüphaneyi güncelle
+            renderStoryList();
         } catch(e) {
             console.error(e); alert("İçerik çekilemedi (JSON Hatası).");
         }
     });
 
-    // Kütüphane Listesini Çizme
     function renderStoryList() {
         const listContainer = document.getElementById('story-list-container');
         if (storyVault.length === 0) {
@@ -176,7 +184,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="story-item-title"><i class="fa-solid fa-book"></i> ${story.title} <small style="color:#888; margin-left:5px;">(${story.lang})</small></div>
                 <button class="mini-btn" onclick="event.stopPropagation(); deleteStory(${story.id})"><i class="fa-solid fa-trash"></i></button>
             `;
-            // Hikayeye tıklanınca Lab'da aç
             div.addEventListener('click', () => {
                 document.querySelector('[data-target="tab-lab"]').click();
                 prepareLabText(story.content);
@@ -185,7 +192,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Kütüphaneden Hikaye Silme
     window.deleteStory = (id) => {
         if(confirm("Bu hikayeyi kütüphaneden silmek istediğine emin misin?")) {
             storyVault = storyVault.filter(s => s.id !== id);
@@ -195,39 +201,86 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // --- LAB: CÜMLE VE PARAGRAF ANALİZİ ---
-    function prepareLabText(text) {
+    async function prepareLabText(text, isRestore = false) {
+        sessionStorage.setItem('activeLabText', text); // Kaybolmasın diye kaydet
+        currentStoryAnalysisData = {}; 
         const labContainer = document.getElementById('text-container');
         labContainer.innerHTML = '';
         
         const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
 
-        sentences.forEach(sentText => {
+        sentences.forEach((sentText, index) => {
+            const cleanSent = sentText.trim();
             const block = document.createElement('div');
             block.className = 'sentence-block';
             
             const textSpan = document.createElement('span');
             textSpan.className = 'sentence-text';
-            textSpan.innerText = sentText.trim();
+            textSpan.innerText = cleanSent;
             block.appendChild(textSpan);
 
             const actionsDiv = document.createElement('div');
             actionsDiv.className = 'sentence-actions';
             
             const btnTrans = document.createElement('button');
-            btnTrans.className = 'btn-action-sm'; btnTrans.innerHTML = '<i class="fa-solid fa-language"></i> Çevir';
-            btnTrans.addEventListener('click', () => openDrawer(sentText.trim(), 'translate'));
+            btnTrans.className = 'btn-action-sm action-trans'; btnTrans.innerHTML = '<i class="fa-solid fa-language"></i> Çevir';
+            btnTrans.addEventListener('click', () => openDrawer(cleanSent, 'translate'));
             
             const btnGrammar = document.createElement('button');
-            btnGrammar.className = 'btn-action-sm'; btnGrammar.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i> İncele';
-            btnGrammar.addEventListener('click', () => openDrawer(sentText.trim(), 'grammar'));
+            btnGrammar.className = 'btn-action-sm action-gram'; btnGrammar.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i> İncele';
+            btnGrammar.addEventListener('click', () => openDrawer(cleanSent, 'grammar'));
 
             const btnExtract = document.createElement('button');
-            btnExtract.className = 'btn-action-sm extract'; btnExtract.innerHTML = '<i class="fa-solid fa-list-check"></i> Kelimeleri Ayıkla';
-            btnExtract.addEventListener('click', () => openDrawer(sentText.trim(), 'extract'));
+            btnExtract.className = 'btn-action-sm extract action-ext'; btnExtract.innerHTML = '<i class="fa-solid fa-list-check"></i> Kelimeleri Ayıkla';
+            btnExtract.addEventListener('click', () => openDrawer(cleanSent, 'extract'));
 
             actionsDiv.appendChild(btnTrans); actionsDiv.appendChild(btnGrammar); actionsDiv.appendChild(btnExtract);
             block.appendChild(actionsDiv); labContainer.appendChild(block);
         });
+
+        if (!isRestore && API_KEYS.length > 0) {
+            autoAnalyzeFullStory(text);
+        }
+    }
+
+    // TOPLU ANALİZ MOTORU
+    async function autoAnalyzeFullStory(fullText) {
+        const buttons = document.querySelectorAll('.sentence-actions button');
+        buttons.forEach(b => { b.disabled = true; b.style.opacity = '0.5'; });
+
+        const cacheKey = `full_analysis_${studyLang}_${fullText.substring(0,30)}`;
+        const prompt = `Şu ${studyLang} dilindeki metnin İÇİNDEKİ HER BİR CÜMLEYİ ayrı ayrı analiz et: "${fullText}". 
+        SADECE JSON formatında bir dizi (array) döndür. Başka hiçbir açıklama yazma.
+        Format şu şekilde olmalı: 
+        [
+          {
+            "sentence": "Cümlenin orijinal tam hali",
+            "translation": "Cümlenin ${nativeLang} çevirisi",
+            "grammar": "Cümlenin dilbilgisi, zamanı ve kurallarının Türkçe kısa özeti",
+            "words": [ {"word": "artikel+kelime", "translation": "Türkçesi", "pos": "isim/fiil/vs", "details": "çoğul/zaman/vs"} ]
+          }
+        ]`;
+
+        const responseText = await callGemini(cacheKey, prompt, true);
+        
+        if (responseText) {
+            try {
+                const analysisArray = JSON.parse(responseText);
+                analysisArray.forEach(item => {
+                    currentStoryAnalysisData[item.sentence.trim()] = item;
+                });
+            } catch (e) {
+                console.error("Toplu analiz JSON hatası:", e);
+            }
+        }
+
+        buttons.forEach(b => { b.disabled = false; b.style.opacity = '1'; });
+    }
+
+    // -- OTURUM KURTARMA (Yanlışlıkla yenilemeye karşı) --
+    const savedLabText = sessionStorage.getItem('activeLabText');
+    if (savedLabText) {
+        prepareLabText(savedLabText, true); 
     }
 
     // --- AI ÇEKMECESİ ---
@@ -241,35 +294,53 @@ document.addEventListener('DOMContentLoaded', () => {
         currentDrawerContext = sentence;
         drawer.classList.remove('hidden');
         
+        const preData = currentStoryAnalysisData[sentence];
+        const hasPreData = preData !== undefined;
+
         if (action === 'extract') {
             chatContainer.classList.add('hidden');
             extractionContainer.classList.remove('hidden');
             document.getElementById('drawer-title').innerText = "Kelimeler Ayıklanıyor...";
-            extractionList.innerHTML = "<div style='padding:20px; text-align:center;'>Derin analiz yapılıyor, lütfen bekleyin...</div>";
             document.getElementById('btn-save-extracted').classList.add('hidden'); 
             
-            const cacheKey = `extract_${studyLang}_${sentence.substring(0,30)}`;
-            const prompt = `Şu ${studyLang} cümlesindeki tüm kelimeleri analiz et: "${sentence}".
-            SADECE JSON dizisi (array) döndür. Format:
-            [{"word": "artikel+kelime (örn: der Mann / gehen)", "translation": "Türkçesi", "pos": "isim/fiil/sıfat vb.", "details": "çoğul/zaman/düzenli durumu veya ek bilgi", "example": "Cümledeki hali veya kısa örnek"}]`;
-
-            const response = await callGemini(cacheKey, prompt, true);
-            renderExtractionList(response, sentence);
+            if (hasPreData && preData.words) {
+                renderExtractionList(JSON.stringify(preData.words), sentence);
+            } else {
+                extractionList.innerHTML = "<div style='padding:20px; text-align:center;'>Derin analiz yapılıyor, lütfen bekleyin...</div>";
+                const cacheKey = `extract_${studyLang}_${sentence.substring(0,30)}`;
+                const prompt = `Şu ${studyLang} cümlesindeki tüm kelimeleri analiz et: "${sentence}".
+                SADECE JSON dizisi (array) döndür. Format:
+                [{"word": "artikel+kelime (örn: der Mann / gehen)", "translation": "Türkçesi", "pos": "isim/fiil/sıfat vb.", "details": "çoğul/zaman/düzenli durumu veya ek bilgi", "example": "Cümledeki hali veya kısa örnek"}]`;
+                const response = await callGemini(cacheKey, prompt, true);
+                renderExtractionList(response, sentence);
+            }
 
         } else {
             extractionContainer.classList.add('hidden');
             chatContainer.classList.remove('hidden');
             chatContent.innerHTML = ''; 
             
+            if (action === 'translate') {
+                document.getElementById('drawer-title').innerText = "Cümle Çevirisi";
+                if (hasPreData && preData.translation) {
+                    addChatMessage(preData.translation, 'ai');
+                    return; 
+                }
+            } else {
+                document.getElementById('drawer-title').innerText = "Gramer Analizi";
+                if (hasPreData && preData.grammar) {
+                    addChatMessage(preData.grammar, 'ai');
+                    return; 
+                }
+            }
+            
             let prompt = ""; let cacheKey = "";
             if (action === 'translate') {
                 cacheKey = `trans_${studyLang}_${sentence.substring(0,30)}`;
                 prompt = `Şu ${studyLang} cümlesini ${nativeLang} diline çevir: "${sentence}"`;
-                document.getElementById('drawer-title').innerText = "Cümle Çevirisi";
             } else {
                 cacheKey = `gram_${studyLang}_${sentence.substring(0,30)}`;
                 prompt = `Şu cümlenin dilbilgisini Türkçe açıkla. Zamanı, kuralları belirt: "${sentence}"`;
-                document.getElementById('drawer-title').innerText = "Gramer Analizi";
             }
             
             addChatMessage("Analiz ediliyor...", 'ai');
