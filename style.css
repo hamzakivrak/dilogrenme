@@ -44,10 +44,16 @@ body { background: var(--bg-gradient); background-size: 300% 300%; animation: gr
 .ai-input-group input { padding: 15px; border-radius: 12px; border: 1px solid rgba(128,128,128,0.3); background: var(--surface-color); color: var(--text-color); font-size: 16px; outline: none; }
 .ai-input-group input:focus { border-color: var(--primary-color); }
 
+/* Genişleyebilir Hikaye Kutuları */
 .story-item { background: var(--surface-color); backdrop-filter: blur(10px); padding: 15px; border-radius: 12px; margin-bottom: 10px; border-left: 4px solid var(--primary-color); box-shadow: 0 4px 10px rgba(0,0,0,0.05); transition: 0.3s; }
 .story-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
-.story-item-title { font-weight: bold; flex: 1; padding-right: 10px; font-size: 16px;}
+.story-item-title { font-weight: bold; flex: 1; padding-right: 10px; font-size: 16px; transition: 0.3s;}
 .story-content-box { margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(128,128,128,0.2); font-size: 15px; line-height: 1.8; color: var(--text-color); opacity: 0.9; animation: fadeIn 0.3s ease; }
+.story-item:active { transform: scale(0.98); }
+
+/* YENİ: Çalışılmış (Laba Aktarılmış) Hikaye Görünümü */
+.story-item.worked { border-left-color: var(--secondary-color); opacity: 0.85; }
+.story-item.worked .story-item-title { color: var(--secondary-color); }
 
 .sentence-block { display: block; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid rgba(187, 134, 252, 0.2); }
 .sentence-text { display: block; margin-bottom: 10px; }
