@@ -150,7 +150,7 @@ body.theme-light .card-face, body.theme-ice .card-face, body.theme-cotton .card-
 .guide-step ul { margin-left: 20px; margin-top: 5px; }
 .guide-step li { margin-bottom: 5px; font-size: 14px; color: var(--text-color); opacity: 0.9;}
 
-/* YENİ: Seçim Popup'ı */
+/* YENİ EKLENEN CSS: Otomatik Çeviri Tooltip'i */
 .selection-tooltip {
     position: absolute;
     z-index: 9999;
