@@ -9,10 +9,12 @@
     <title>AI Dil Asistanı Pro</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#121212">
-    <link rel="stylesheet" href="style.css?v=20">
+    <link rel="stylesheet" href="style.css?v=21">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
+
+    <div id="selection-tooltip" class="selection-tooltip hidden">Çevriliyor...</div>
 
     <main id="app-content">
         <section id="tab-studio" class="tab-section active">
@@ -86,10 +88,13 @@
             <div class="sub-content-area">
                 
                 <div id="sub-kelimeler" class="sub-section active">
-                    <button id="btn-random-session" class="action-btn" style="width: 100%; margin-bottom: 20px; background: var(--secondary-color); color: #000; font-size:15px; box-shadow: 0 4px 15px rgba(3, 218, 198, 0.3);"><i class="fa-solid fa-dumbbell"></i> Rastgele 20 Kelime Seç ve Başla</button>
+                    <div style="display:flex; gap:10px; margin-bottom: 10px;">
+                        <button id="btn-random-session" class="action-btn" style="flex:1; background: var(--secondary-color); color: #000; font-size:14px; box-shadow: 0 4px 15px rgba(3, 218, 198, 0.3);"><i class="fa-solid fa-dice"></i> Rastgele 20</button>
+                        <button id="btn-custom-session" class="action-btn" style="flex:1; background: transparent; border: 1px solid var(--primary-color); color: var(--primary-color); font-size:14px;"><i class="fa-solid fa-hand-pointer"></i> Kendim Seçeyim</button>
+                    </div>
+                    <button id="btn-sentence-quiz-start" class="action-btn" style="width: 100%; margin-bottom: 20px; background: var(--primary-color); color: #fff; font-size:14px;"><i class="fa-solid fa-pen-clip"></i> Rastgele 20 Cümle (Boşluk Doldurma)</button>
                     
-                    <div id="flashcard-container" class="flashcard-container">
-                        </div>
+                    <div id="flashcard-container" class="flashcard-container"></div>
                     
                     <div class="flashcard-controls hidden" id="flashcard-controls" style="margin-top: 15px;">
                         <button id="btn-prev-card" class="action-btn mini"><i class="fa-solid fa-arrow-left"></i></button>
@@ -97,9 +102,21 @@
                         <button id="btn-next-card" class="action-btn mini"><i class="fa-solid fa-arrow-right"></i></button>
                     </div>
 
+                    <div id="fc-chat-box" class="hidden" style="margin-top: 20px; background: var(--surface-color); border: 1px solid rgba(128,128,128,0.2); border-radius: 15px; padding: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                        <h4 style="margin-top:0; color:var(--primary-color); display:flex; justify-content:space-between;">
+                            <span><i class="fa-solid fa-robot"></i> Kart Asistanı</span>
+                            <button id="btn-clear-fc-chat" class="mini-btn" style="background:transparent; color:var(--nav-inactive); padding:0;"><i class="fa-solid fa-eraser"></i></button>
+                        </h4>
+                        <div id="fc-chat-content" style="max-height: 200px; overflow-y: auto; margin-bottom: 10px; font-size: 14px; display:flex; flex-direction:column;"></div>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="text" id="fc-chat-input" placeholder="Bu kelime/cümle hakkında sor..." style="flex:1; padding: 10px; border-radius: 8px; border: 1px solid rgba(128,128,128,0.3); background: rgba(0,0,0,0.2); color: var(--text-color); outline:none;">
+                            <button id="btn-fc-chat-send" class="action-btn mini" style="width:40px;"><i class="fa-solid fa-paper-plane"></i></button>
+                        </div>
+                    </div>
+
                     <div class="quiz-controls hidden" id="quiz-controls">
                         <div style="text-align: center; margin-bottom: 15px; font-size: 14px; color: var(--secondary-color); text-transform: uppercase; letter-spacing: 1px; font-weight: bold;">Yazılı Sınav</div>
-                        <div style="text-align: center; margin-bottom: 5px; font-weight: bold; font-size: 18px;" id="quiz-question-text">Türkçesi: ...</div>
+                        <div style="text-align: center; margin-bottom: 5px; font-weight: bold; font-size: 18px; line-height: 1.4;" id="quiz-question-text">Türkçesi: ...</div>
                         <div style="text-align: center; margin-bottom: 15px; font-size: 13px; color: var(--nav-inactive); font-style: italic;" id="quiz-hint-text"></div>
                         <div style="display: flex; gap: 10px;">
                             <input type="text" id="quiz-input" placeholder="Hedef dilde yazın..." style="flex:1; padding: 12px; border-radius: 10px; border: 1px solid rgba(128,128,128,0.4); background: rgba(0,0,0,0.2); color: var(--text-color); outline: none; text-align: center; font-size: 16px;">
@@ -115,6 +132,13 @@
                 </div>
 
                 <div id="sub-notlar" class="sub-section hidden">
+                    <div style="background: rgba(128,128,128,0.05); padding: 15px; border-radius: 12px; border: 1px solid rgba(128,128,128,0.2); margin-bottom: 20px; display:flex; flex-direction:column; gap:10px;">
+                        <strong style="color:var(--primary-color); font-size:14px;"><i class="fa-solid fa-pen-to-square"></i> Kendi Notunu Ekle</strong>
+                        <input type="text" id="manual-note-title" placeholder="Not Başlığı..." style="padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.2); border: 1px solid rgba(128,128,128,0.3); color: var(--text-color); outline:none;">
+                        <textarea id="manual-note-content" placeholder="Notunuzu buraya yazın veya yapıştırın..." rows="3" style="padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.2); border: 1px solid rgba(128,128,128,0.3); color: var(--text-color); resize: vertical; outline:none; font-family:inherit;"></textarea>
+                        <button id="btn-add-manual-note" class="action-btn mini" style="align-self: flex-end;"><i class="fa-solid fa-plus"></i> Havuza Ekle</button>
+                    </div>
+
                     <div class="section-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
                         <h3><i class="fa-solid fa-book-open-reader"></i> Gramer Notları</h3>
                         <details class="hide-delete" style="position: relative;">
@@ -138,7 +162,6 @@
                     <input type="password" id="api-key-input" placeholder="Anahtarları virgülle ayırarak girin...">
                     <button id="btn-save-key" class="action-btn">Kaydet</button>
                 </div>
-                
                 <div class="setting-item">
                     <div class="setting-info"><strong>Ana Dil</strong><span>Senin anladığın dil</span></div>
                     <select id="native-language" class="styled-select">
@@ -146,7 +169,6 @@
                         <option value="İngilizce">İngilizce</option>
                     </select>
                 </div>
-
                 <div class="setting-item">
                     <div class="setting-info"><strong>Öğrenilen Dil</strong><span>Hedef dil</span></div>
                     <select id="study-language" class="styled-select">
@@ -156,7 +178,6 @@
                         <option value="Fransızca">Fransızca</option>
                     </select>
                 </div>
-                
                 <div class="setting-item backup-box">
                     <div class="setting-info"><strong>Tüm Verileri Yedekle</strong><span>Hikaye, kelime, sohbet ve ayarları aktar</span></div>
                     <div class="backup-actions">
@@ -165,7 +186,6 @@
                         <input type="file" id="import-vault" accept=".json" style="display:none;">
                     </div>
                 </div>
-
                 <div class="setting-item">
                     <div class="setting-info"><strong>Görünüm</strong><span>Tema Seçimi</span></div>
                     <select id="theme-select" class="styled-select">
@@ -177,7 +197,6 @@
                         <option value="theme-ocean">Okyanus (Derin Mavi)</option>
                     </select>
                 </div>
-                
                 <details class="setting-item advanced-settings" style="flex-direction: column; align-items: flex-start; gap: 10px;">
                     <summary><strong><i class="fa-solid fa-triangle-exclamation"></i> Gelişmiş Ayarlar</strong></summary>
                     <div style="width: 100%; display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 10px; border-top: 1px dashed rgba(128,128,128,0.3);">
@@ -199,59 +218,21 @@
     <div id="guide-modal" class="modal-overlay hidden">
         <div class="modal-content" style="max-height: 85vh; overflow-y: auto;">
             <h3 style="color:var(--primary-color); margin-top:0; border-bottom: 1px solid rgba(128,128,128,0.2); padding-bottom: 10px;"><i class="fa-solid fa-rocket"></i> AI Dil Asistanı Pro</h3>
-            <p style="font-size: 15px;">Hoş geldin! Bu uygulama, cebinde taşıyabileceğin <strong>özel bir dil öğretmenidir</strong>. Yapay zeka ile sana özel okuma metinleri üretir, cümleleri kelime kelime analiz eder ve akıllı sınavlarla bu kelimeleri ezberlemeni sağlar.</p>
-            
-            <div class="guide-step">
-                <strong>⚙️ Adım 0: Motoru Çalıştır (Ayarlar)</strong>
-                Uygulamanın çalışması için önce <strong>Ayarlar</strong> sekmesine git. "Gemini API Anahtarı" yazan yere kendi anahtarını yapıştır ve kaydet. Sonra hemen altından dillerini seç.
-            </div>
-
-            <div class="guide-step">
-                <strong>📖 Adım 1: Metin Üret (Stüdyo)</strong>
-                Stüdyo senin fabrikan. Yukarıya sadece bir konu yaz ve <strong>"Hikaye Üret"</strong> butonuna bas. Çıkan hikayeye tıkla ve <strong>"Laboratuvara Aktar"</strong> de.
-            </div>
-
-            <div class="guide-step">
-                <strong>🔬 Adım 2: Parçalara Ayır (Lab)</strong>
-                Burası ameliyathane! Gönderdiğin hikaye burada cümle cümle ayrılır. Her cümlenin altındaki butonlarla:
-                <ul>
-                    <li>🔊 <strong>Dinle:</strong> Cümleyi orijinal dilde telaffuz eder.</li>
-                    <li>🇹🇷 <strong>Çevir:</strong> Türkçe çevirisini verir.</li>
-                    <li>🔍 <strong>İncele:</strong> Öğretmen gibi cümlenin gramerini açıklar. Buradan Yapay Zekaya soru sorabilir ve cevapları <strong>"Notlara Ekle"</strong> diyerek kaydedebilirsin.</li>
-                    <li>📋 <strong>Ayıkla:</strong> Cümledeki kelimeleri çıkarır. Bilmediğin kelimeleri seçip <strong>"Havuza At"</strong> tuşuyla ezber listene gönderirsin.</li>
-                </ul>
-            </div>
-
-            <div class="guide-step" style="border-bottom:none;">
-                <strong>🧠 Adım 3: Kas Yapma Zamanı (Havuz)</strong>
-                Kaydettiğin tüm kelimeler ve notlar buradadır. 
-                <ul>
-                    <li><strong>Akıllı Çalışma:</strong> Rastgele 20 kelime butonuyla çalışmaya başla. Kartlarla çalıştıktan sonra sistem seni <strong>Yazılı Sınava</strong> sokar!</li>
-                    <li><strong>Geçmiş (Saat İkonu):</strong> Eski kelime gruplarını tekrar etmek için kullan.</li>
-                    <li><strong>Kelime Listesi (Üç Çizgi):</strong> Kaydettiğin kelimeleri topluca gör/sil.</li>
-                    <li><strong>Notlar (Orta Sekme):</strong> AI'dan kaydettiğin altın gramer notlarını oku.</li>
-                </ul>
-            </div>
-
-            <div style="background: rgba(207, 102, 121, 0.1); padding: 12px; border-radius: 8px; border: 1px solid rgba(207, 102, 121, 0.3); margin-top: 10px;">
-                <strong style="color: #cf6679; font-size: 14px;">💾 Unutma: Emeğini Yedekle!</strong>
-                <p style="margin: 5px 0 0 0; font-size: 13px;">Uygulama tüm verileri telefonun tarayıcı hafızasına kaydeder. Geçmişi silersen kelimelerin de gider! Bu yüzden ara sıra <strong>Ayarlar -> Tüm Verileri Yedekle</strong> diyerek kelimelerini ve hikayelerini telefonuna ufak bir dosya olarak indirmeyi unutma.</p>
-            </div>
-
+            <p style="font-size: 15px;">Hoş geldin! Bu uygulama, cebinde taşıyabileceğin <strong>özel bir dil öğretmenidir</strong>.</p>
             <button id="btn-close-guide" class="action-btn" style="width: 100%; margin-top: 20px;">Anladım, Başlayalım!</button>
         </div>
     </div>
 
     <div id="session-prep-modal" class="modal-overlay hidden">
         <div class="modal-content" style="max-height: 85vh; display: flex; flex-direction: column; width: 95%; max-width: 500px; padding: 20px;">
-            <h3 style="margin-top:0; color:var(--primary-color);"><i class="fa-solid fa-list-check"></i> Oturum Hazırlığı</h3>
-            <p>Çalışmak istemediğiniz kelimelerin seçimini kaldırıp havuzdan yenileriyle değiştirebilirsiniz.</p>
+            <h3 style="margin-top:0; color:var(--primary-color);"><i class="fa-solid fa-list-check"></i> Kelime Seçimi</h3>
+            <p id="prep-modal-desc">Çalışmak istediğiniz kelimeleri seçin.</p>
 
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid rgba(128,128,128,0.2);">
                 <label style="cursor:pointer; display:flex; align-items:center; gap:8px; font-weight:bold; color:var(--text-color); font-size:14px;">
                     <input type="checkbox" id="chk-prep-select-all" checked style="width:18px; height:18px; accent-color:var(--primary-color);"> Tümünü Seç
                 </label>
-                <button id="btn-prep-replace" class="mini-btn" style="background:transparent; color:var(--secondary-color); border:1px solid var(--secondary-color);"><i class="fa-solid fa-rotate"></i> Seçilmeyenleri Değiştir</button>
+                <button id="btn-prep-replace" class="mini-btn" style="background:transparent; color:var(--secondary-color); border:1px solid var(--secondary-color);"><i class="fa-solid fa-rotate"></i> Değiştir</button>
             </div>
 
             <div id="prep-word-list" style="overflow-y: auto; flex: 1; padding-right: 5px; margin-bottom: 15px;"></div>
@@ -261,67 +242,11 @@
         </div>
     </div>
 
-    <div id="word-list-modal" class="modal-overlay hidden">
-        <div class="modal-content" style="max-height: 85vh; display: flex; flex-direction: column; width: 95%; max-width: 500px; padding: 20px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h3 style="margin: 0; color:var(--primary-color);"><i class="fa-solid fa-list"></i> Kelime Listesi</h3>
-                <button id="btn-close-word-list" style="background: none; border: none; color: var(--text-color); font-size: 24px; cursor: pointer;"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid rgba(128,128,128,0.2);">
-                <label style="cursor:pointer; display:flex; align-items:center; gap:8px; font-weight:bold; color:var(--text-color); font-size:14px;">
-                    <input type="checkbox" id="chk-select-all-words" style="width:18px; height:18px; accent-color:var(--primary-color);"> Tümünü Seç
-                </label>
-                <button id="btn-delete-selected-words" class="mini-btn" style="background:transparent; color:#cf6679; border:1px solid #cf6679;"><i class="fa-solid fa-trash-can"></i> Seçilenleri Sil</button>
-            </div>
-            
-            <div id="modal-vault-list" style="overflow-y: auto; flex: 1; padding-right: 5px;"></div>
-        </div>
-    </div>
-
-    <div id="past-sessions-modal" class="modal-overlay hidden">
-        <div class="modal-content">
-            <h3><i class="fa-solid fa-clock-rotate-left"></i> Çalışma Geçmişi</h3>
-            <p>Daha önce çalıştığınız kelime gruplarını aralıklı tekrar için yeniden çalışın:</p>
-            <div id="past-sessions-list" style="max-height: 40vh; overflow-y: auto; margin-bottom: 15px; padding-right:5px;"></div>
-            <button id="btn-close-past-sessions" class="action-btn" style="width: 100%; background:rgba(128,128,128,0.5);">Kapat</button>
-        </div>
-    </div>
-
-    <div id="delete-modal" class="modal-overlay hidden">
-        <div class="modal-content">
-            <h3><i class="fa-solid fa-triangle-exclamation"></i> Veri Silme Yöneticisi</h3>
-            <p>Hangi verilerin tamamen silinmesini istediğini seç:</p>
-            <label><input type="checkbox" id="chk-del-cache"> <strong>AI Önbelleği</strong> (Hızlı analiz verileri)</label>
-            <label><input type="checkbox" id="chk-del-chat"> <strong>Sohbet Geçmişi</strong> (Yapay zekaya sorulan sorular)</label>
-            <label><input type="checkbox" id="chk-del-stories"> <strong>Hikaye Kütüphanesi</strong> (Tüm kayıtlı metinler)</label>
-            <label><input type="checkbox" id="chk-del-vault"> <strong>Kelime Havuzu</strong> (Tüm eğitim kartları)</label>
-            <label><input type="checkbox" id="chk-del-notes"> <strong>Gramer Notları</strong> (Kendi kaydettiğin notlar)</label>
-            <label><input type="checkbox" id="chk-del-sessions"> <strong>Çalışma Geçmişi</strong> (Kaydedilen oturumlar)</label>
-            <div style="display:flex; gap:10px; margin-top:25px;">
-                <button id="btn-cancel-del" class="action-btn" style="background:rgba(128,128,128,0.5); flex:1;">İptal</button>
-                <button id="btn-confirm-del" class="action-btn" style="background:#cf6679; flex:1;">Seçilenleri Sil</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="note-title-modal" class="modal-overlay hidden">
-        <div class="modal-content">
-            <h3><i class="fa-solid fa-bookmark"></i> Notu Kaydet</h3>
-            <p>Bu analizi hatırlamak için bir başlık belirle:</p>
-            <input type="text" id="note-title-input" placeholder="Örn: Akkusativ Alan Edatlar..." style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(128,128,128,0.4); background: transparent; color: var(--text-color); margin-bottom: 15px; outline:none; font-size:15px;">
-            <div style="display:flex; gap:10px;">
-                <button id="btn-cancel-note" class="action-btn" style="background:rgba(128,128,128,0.5); flex:1;">İptal</button>
-                <button id="btn-save-note-confirm" class="action-btn" style="background:var(--secondary-color); color:#000; flex:1;">Kaydet</button>
-            </div>
-        </div>
-    </div>
+    <div id="word-list-modal" class="modal-overlay hidden"><div class="modal-content">...</div></div>
+    <div id="past-sessions-modal" class="modal-overlay hidden"><div class="modal-content">...</div></div>
+    <div id="delete-modal" class="modal-overlay hidden"><div class="modal-content">...</div></div>
+    <div id="note-title-modal" class="modal-overlay hidden"><div class="modal-content">...</div></div>
 
     <script src="app.js"></script>
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js'); });
-      }
-    </script>
 </body>
 </html>
