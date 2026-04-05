@@ -150,7 +150,7 @@ body.theme-light .card-face, body.theme-ice .card-face, body.theme-cotton .card-
 .guide-step ul { margin-left: 20px; margin-top: 5px; }
 .guide-step li { margin-bottom: 5px; font-size: 14px; color: var(--text-color); opacity: 0.9;}
 
-/* YENİ EKLENEN CSS: Otomatik Çeviri Tooltip'i */
+/* Otomatik Çeviri Tooltip'i */
 .selection-tooltip {
     position: absolute;
     z-index: 9999;
@@ -169,3 +169,11 @@ body.theme-light .card-face, body.theme-ice .card-face, body.theme-cotton .card-
     transition: opacity 0.2s;
 }
 .selection-tooltip:active { transform: translate(-50%, -100%) scale(0.95); }
+
+/* YENİ EKLENEN: AI Tablo Stilleri */
+.table-responsive { width: 100%; overflow-x: auto; margin-bottom: 15px; border-radius: 8px; border: 1px solid rgba(128,128,128,0.3); }
+.ai-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; background: rgba(0,0,0,0.1); }
+.ai-table th { background: var(--primary-color); color: #fff; padding: 12px 10px; font-weight: bold; border-bottom: 2px solid rgba(128,128,128,0.2); white-space: nowrap; }
+.ai-table td { padding: 10px; border-bottom: 1px solid rgba(128,128,128,0.2); color: var(--text-color); vertical-align: top; }
+.ai-table tr:nth-child(even) td { background: rgba(128,128,128,0.05); }
+.ai-table tr:last-child td { border-bottom: none; }
