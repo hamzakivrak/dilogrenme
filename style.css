@@ -149,3 +149,23 @@ body.theme-light .card-face, body.theme-ice .card-face, body.theme-cotton .card-
 .guide-step strong { display: block; color: var(--secondary-color); margin-bottom: 5px; font-size: 16px;}
 .guide-step ul { margin-left: 20px; margin-top: 5px; }
 .guide-step li { margin-bottom: 5px; font-size: 14px; color: var(--text-color); opacity: 0.9;}
+
+/* YENİ: Seçim Popup'ı */
+.selection-tooltip {
+    position: absolute;
+    z-index: 9999;
+    background: var(--primary-color);
+    color: #fff;
+    padding: 8px 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+    font-weight: bold;
+    font-size: 14px;
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(255,255,255,0.2);
+    transform: translate(-50%, -100%);
+    margin-top: -10px;
+    transition: opacity 0.2s;
+}
+.selection-tooltip:active { transform: translate(-50%, -100%) scale(0.95); }
