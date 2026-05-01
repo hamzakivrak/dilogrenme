@@ -184,14 +184,23 @@
                     </select>
                 </div>
                 
-                <div class="setting-item backup-box">
-                    <div class="setting-info"><strong>Tüm Verileri Yedekle</strong><span>Hikaye, kelime, sohbet ve ayarları aktar</span></div>
-                    <div class="backup-actions">
-                        <button id="btn-export-vault" class="action-btn mini"><i class="fa-solid fa-download"></i></button>
-                        <label for="import-vault" class="action-btn mini file-label"><i class="fa-solid fa-upload"></i></label>
-                        <input type="file" id="import-vault" accept=".json" style="display:none;">
-                    </div>
-                </div>
+               <div class="setting-item backup-box" style="flex-direction: column; align-items: flex-start; gap: 10px;">
+    <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+        <div class="setting-info">
+            <strong>Tüm Verileri Yedekle</strong>
+            <span>Hikaye, kelime, sohbet ve ayarları aktar</span>
+        </div>
+        <div class="backup-actions">
+            <button id="btn-export-vault" class="action-btn mini"><i class="fa-solid fa-download"></i></button>
+            <label for="import-vault" class="action-btn mini file-label"><i class="fa-solid fa-upload"></i></label>
+            <input type="file" id="import-vault" accept=".json" style="display:none;">
+        </div>
+    </div>
+    <label style="font-size: 13px; color: var(--nav-inactive); display: flex; align-items: center; gap: 8px; cursor: pointer; margin-top: 5px;">
+        <input type="checkbox" id="chk-merge-backup" checked style="width: 16px; height: 16px; accent-color: var(--primary-color);">
+        Yedektekileri mevcut verilere EKLE (Silme)
+    </label>
+</div>
 
                 <div class="setting-item">
                     <div class="setting-info"><strong>Görünüm</strong><span>Tema Seçimi</span></div>
