@@ -1275,14 +1275,13 @@ document.addEventListener('DOMContentLoaded', () => {
     vocabTab.addEventListener('touchstart', e => { touchstartX = e.changedTouches[0].screenX; }, {passive: true});
     vocabTab.addEventListener('touchend', e => {
         
-        // YENİ EKLENEN KOD: Eğer ekranda açık bir not varsa veya bir tabloya dokunuluyorsa kaydırmayı durdur
-        const isNoteOpen = document.querySelector('.note-content-box:not(.hidden)');
-        if (isNoteOpen || e.target.closest('.table-responsive')) return;
+        // YENİ EKLENEN KOD: Eğer parmak bir not kutusunun veya tablonun içindeyse bizim sekme değiştirme kodumuzu çalıştırma.
+        if (e.target.closest('.note-content-box') || e.target.closest('.table-responsive')) return;
 
         touchendX = e.changedTouches[0].screenX;
         let isInsideCard = e.target.closest('.flashcard-container'); 
         const currentSubTab = document.querySelector('.sub-nav-btn.active').getAttribute('data-sub');
-        
+               
         if (studyPhase === 'flashcards' && isInsideCard) {
             if (touchendX < touchstartX - 50) document.getElementById('btn-next-card').click(); 
             if (touchendX > touchstartX + 50) document.getElementById('btn-prev-card').click();  
