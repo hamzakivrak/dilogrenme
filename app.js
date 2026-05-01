@@ -1274,8 +1274,10 @@ document.addEventListener('DOMContentLoaded', () => {
     
     vocabTab.addEventListener('touchstart', e => { touchstartX = e.changedTouches[0].screenX; }, {passive: true});
     vocabTab.addEventListener('touchend', e => {
-        // YENİ EKLENEN KOD: Tablo içerisinde VEYA açık bir notun içinde kaydırma yapılıyorsa sekme değiştirmeyi durdur
-        if (e.target.closest('.table-responsive') || e.target.closest('.note-content-box')) return;
+        
+        // YENİ EKLENEN KOD: Eğer ekranda açık bir not varsa veya bir tabloya dokunuluyorsa kaydırmayı durdur
+        const isNoteOpen = document.querySelector('.note-content-box:not(.hidden)');
+        if (isNoteOpen || e.target.closest('.table-responsive')) return;
 
         touchendX = e.changedTouches[0].screenX;
         let isInsideCard = e.target.closest('.flashcard-container'); 
