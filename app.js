@@ -1315,31 +1315,100 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('import-vault').addEventListener('change', (event) => {
         const file = event.target.files[0]; if (!file) return;
+        
+        // YENİ: Checkbox işaretli mi kontrol et
+        const mergeCheckbox = document.getElementById('chk-merge-backup');
+        const isMerge = mergeCheckbox ? mergeCheckbox.checked : false; 
+        
         const reader = new FileReader();
         reader.onload = (e) => {
             try {
                 const importedData = JSON.parse(e.target.result);
+                
                 if (Array.isArray(importedData)) {
-                    vault = importedData; sessionVault = [...vault]; localStorage.setItem('myVault', JSON.stringify(vault));
-                    currentCardIndex = 0; alert("Eski tip kelime yedeği yüklendi!"); checkFlashcardState();
-                } else if (importedData.vault !== undefined) {
-                    if(confirm("Mevcut tüm verilerin silinip yedektekilerin yüklenecek. Emin misin?")) {
-                        localStorage.setItem('myVault', JSON.stringify(importedData.vault || []));
-                        localStorage.setItem('myStories', JSON.stringify(importedData.storyVault || []));
-                        localStorage.setItem('dil_ai_cache', JSON.stringify(importedData.aiCache || {}));
-                        localStorage.setItem('dil_chat_history', JSON.stringify(importedData.chatHistoryVault || {}));
-                        localStorage.setItem('dil_notes', JSON.stringify(importedData.notesVault || []));
-                        localStorage.setItem('dil_study_sessions', JSON.stringify(importedData.studySessionsVault || []));
-                        if (importedData.settings) {
-                            localStorage.setItem('gemini_api_keys', importedData.settings.apiKeys || "");
-                            localStorage.setItem('nativeLang', importedData.settings.nativeLang || "Türkçe");
-                            localStorage.setItem('studyLang', importedData.settings.studyLang || "Almanca");
-                            localStorage.setItem('dil_theme_class', importedData.settings.theme || "");
+                    // --- ESKİ TİP YEDEK YÜKLEME ---
+                    if(confirm(isMerge ? "Eski tip yedek mevcut kelimelere eklenecek. Onaylıyor musun?" : "Mevcut veriler silinip yedek yüklenecek. Emin misin?")) {
+                        if (isMerge) {
+                            importedData.forEach(item => {
+                                // Aynı kelime havuzda yoksa ekle
+                                if(!vault.some(v => v.frontWord.toLowerCase() === item.frontWord.toLowerCase())) vault.unshift(item);
+                            });
+                        } else {
+                            vault = importedData;
                         }
-                        alert("Tüm veriler başarıyla geri yüklendi! Uygulama yenileniyor..."); location.reload(); 
+                        sessionVault = [...vault]; localStorage.setItem('myVault', JSON.stringify(vault));
+                        currentCardIndex = 0; checkFlashcardState();
+                        alert("Eski tip kelime yedeği başarıyla " + (isMerge ? "eklendi!" : "yüklendi!"));
+                    }
+                } else if (importedData.vault !== undefined) {
+                    // --- YENİ TİP TAM YEDEK YÜKLEME ---
+                    const confirmMsg = isMerge 
+                        ? "Yedekteki veriler mevcut kayıtlarının üzerine EKLENECEK. Aynı kelime ve hikayeler atlanacak. Onaylıyor musun?"
+                        : "Mevcut tüm verilerin SİLİNİP sadece yedektekiler yüklenecek. Emin misin?";
+
+                    if(confirm(confirmMsg)) {
+                        if (isMerge) {
+                            // 1. KELİME HAVUZUNU BİRLEŞTİR
+                            const importedVault = importedData.vault || [];
+                            importedVault.forEach(newCard => {
+                                if(!vault.some(v => v.frontWord.toLowerCase() === newCard.frontWord.toLowerCase())) vault.unshift(newCard);
+                            });
+                            localStorage.setItem('myVault', JSON.stringify(vault));
+
+                            // 2. HİKAYELERİ BİRLEŞTİR
+                            const importedStories = importedData.storyVault || [];
+                            importedStories.forEach(newStory => {
+                                if(!storyVault.some(s => s.title === newStory.title)) storyVault.unshift(newStory);
+                            });
+                            localStorage.setItem('myStories', JSON.stringify(storyVault));
+
+                            // 3. NOTLARI BİRLEŞTİR
+                            const importedNotes = importedData.notesVault || [];
+                            importedNotes.forEach(newNote => {
+                                if(!notesVault.some(n => n.title === newNote.title)) notesVault.unshift(newNote);
+                            });
+                            localStorage.setItem('dil_notes', JSON.stringify(notesVault));
+
+                            // 4. ÇALIŞMA GEÇMİŞİNİ BİRLEŞTİR
+                            const importedSessions = importedData.studySessionsVault || [];
+                            importedSessions.forEach(newSession => {
+                                if(!studySessionsVault.some(s => s.id === newSession.id)) studySessionsVault.unshift(newSession);
+                            });
+                            localStorage.setItem('dil_study_sessions', JSON.stringify(studySessionsVault));
+
+                            // 5. SOHBET VE ÖNBELLEĞİ BİRLEŞTİR (Mevcut olanı koruyup yeniyi üstüne ekler)
+                            chatHistoryVault = { ...(importedData.chatHistoryVault || {}), ...chatHistoryVault };
+                            localStorage.setItem('dil_chat_history', JSON.stringify(chatHistoryVault));
+                            
+                            aiCache = { ...(importedData.aiCache || {}), ...aiCache };
+                            localStorage.setItem('dil_ai_cache', JSON.stringify(aiCache));
+
+                            alert("Yedekteki veriler mevcut kayıtlarına başarıyla EKLENDİ! Uygulama yenileniyor...");
+                            location.reload();
+
+                        } else {
+                            // TAMAMEN ÜZERİNE YAZ (ESKİ MANTIK)
+                            localStorage.setItem('myVault', JSON.stringify(importedData.vault || []));
+                            localStorage.setItem('myStories', JSON.stringify(importedData.storyVault || []));
+                            localStorage.setItem('dil_ai_cache', JSON.stringify(importedData.aiCache || {}));
+                            localStorage.setItem('dil_chat_history', JSON.stringify(importedData.chatHistoryVault || {}));
+                            localStorage.setItem('dil_notes', JSON.stringify(importedData.notesVault || []));
+                            localStorage.setItem('dil_study_sessions', JSON.stringify(importedData.studySessionsVault || []));
+                            if (importedData.settings) {
+                                localStorage.setItem('gemini_api_keys', importedData.settings.apiKeys || "");
+                                localStorage.setItem('nativeLang', importedData.settings.nativeLang || "Türkçe");
+                                localStorage.setItem('studyLang', importedData.settings.studyLang || "Almanca");
+                                localStorage.setItem('dil_theme_class', importedData.settings.theme || "");
+                            }
+                            alert("Tüm veriler başarıyla değiştirildi! Uygulama yenileniyor..."); 
+                            location.reload(); 
+                        }
                     }
                 } else { alert("Geçersiz yedek dosyası!"); }
-            } catch(err) { alert("Dosya okuma hatası."); }
+            } catch(err) { alert("Dosya okuma hatası: " + err.message); }
+            
+            // YENİ: Kullanıcı aynı yedeği art arda iki kez seçebilsin diye dosya girdisini sıfırlıyoruz
+            event.target.value = ''; 
         };
         reader.readAsText(file);
     });
