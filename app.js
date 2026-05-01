@@ -1268,12 +1268,15 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
     }
 
-    // HAVUZ GENEL SWIPE (Kaydırma) KONTROLLERİ
+   // HAVUZ GENEL SWIPE (Kaydırma) KONTROLLERİ
     let touchstartX = 0; let touchendX = 0;
     const vocabTab = document.getElementById('tab-vocab');
     
     vocabTab.addEventListener('touchstart', e => { touchstartX = e.changedTouches[0].screenX; }, {passive: true});
     vocabTab.addEventListener('touchend', e => {
+        // YENİ EKLENEN KOD: Tablo içerisinde kaydırma yapılıyorsa sekme değiştirmeyi durdur
+        if (e.target.closest('.table-responsive')) return;
+
         touchendX = e.changedTouches[0].screenX;
         let isInsideCard = e.target.closest('.flashcard-container'); 
         const currentSubTab = document.querySelector('.sub-nav-btn.active').getAttribute('data-sub');
