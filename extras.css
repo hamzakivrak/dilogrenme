@@ -1,0 +1,23 @@
+/* === EXTRAS: toast, loader, offline, arama, panel === */
+input,textarea,select{font-size:16px}
+body{padding-top:env(safe-area-inset-top,0)}
+.bottom-nav{padding-bottom:env(safe-area-inset-bottom,0)}
+#toast-wrap{position:fixed;left:0;right:0;bottom:calc(90px + env(safe-area-inset-bottom,0));display:flex;flex-direction:column;align-items:center;gap:8px;z-index:99999;pointer-events:none}
+.toast{pointer-events:auto;max-width:90%;background:var(--nav-bg);color:var(--text-color);border:1px solid var(--primary-color);padding:10px 14px;border-radius:12px;font-size:14px;box-shadow:0 4px 16px rgba(0,0,0,.4);display:flex;gap:12px;align-items:center;animation:tIn .25s}
+.toast button{background:none;border:none;color:var(--primary-color);font-weight:700;cursor:pointer;font-size:14px}
+@keyframes tIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+#top-loader{position:fixed;top:0;left:0;height:3px;width:0;background:var(--secondary-color);z-index:99999;transition:width .4s;opacity:0}
+#top-loader.on{opacity:1;width:80%;transition:width 8s cubic-bezier(.1,.8,.2,1)}
+.btn-busy{opacity:.6;pointer-events:none}
+.btn-busy::after{content:"";display:inline-block;width:12px;height:12px;margin-left:8px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:sp .7s linear infinite;vertical-align:middle}
+@keyframes sp{to{transform:rotate(360deg)}}
+#offline-bar{position:fixed;top:env(safe-area-inset-top,0);left:0;right:0;background:#b71c1c;color:#fff;text-align:center;font-size:12px;padding:4px;z-index:99998;display:none}
+.mini-search{width:100%;margin:8px 0;padding:10px 12px;border-radius:12px;border:1px solid rgba(128,128,128,.4);background:var(--surface-color);color:var(--text-color)}
+.stat-card{background:var(--surface-color);border:1px solid rgba(128,128,128,.25);border-radius:14px;padding:12px;margin-bottom:12px}
+.stat-row{display:flex;justify-content:space-between;text-align:center;gap:6px}
+.stat-row div{flex:1}.stat-row b{display:block;font-size:20px;color:var(--primary-color)}.stat-row span{font-size:11px;opacity:.8}
+.stat-card .action-btn{width:100%;margin-top:10px}
+.tab-section.active{animation:tIn .25s}
+.reading-text{font-size:var(--read-fs,inherit)}
+body.no-anim{animation:none!important}
+@media (prefers-reduced-motion:reduce){body{animation:none!important}*{transition-duration:.01ms!important}}

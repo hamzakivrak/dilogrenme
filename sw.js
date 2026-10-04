@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dil-ai-v4'; 
+const CACHE_NAME = 'dil-ai-v5';
 
 self.addEventListener('install', (event) => {
     self.skipWaiting();
@@ -20,14 +20,19 @@ self.addEventListener('activate', (event) => {
 
 // AĞ-ÖNCELİKLİ (Network-First) STRATEJİ: Her zaman en güncel kodu çeker!
 self.addEventListener('fetch', (event) => {
+    const req = event.request;
+    // Sadece GET istekleri; Gemini API (POST) ve diğer API çağrıları SW'ye hiç girmesin
+    if (req.method !== 'GET' || req.url.includes('generativelanguage.googleapis.com')) return;
+
     event.respondWith(
-        fetch(event.request).then((response) => {
-            return caches.open(CACHE_NAME).then((cache) => {
-                cache.put(event.request, response.clone());
-                return response;
-            });
+        fetch(req).then((response) => {
+            if (response && (response.ok || response.type === 'opaque')) {
+                const copy = response.clone();
+                caches.open(CACHE_NAME).then((cache) => cache.put(req, copy));
+            }
+            return response;
         }).catch(() => {
-            return caches.match(event.request); // Sadece internet yoksa hafızadan kullan
+            return caches.match(req); // Sadece internet yoksa hafızadan kullan
         })
     );
 });

@@ -51,6 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     renderStoryList();
     renderNotesList();
+    window.__app = { getVault: () => vault, start: (arr) => initStudySession(arr, true, 'flashcards') };
 
     // --- YENİ EKLENEN: MARKDOWN TO HTML PARSER (TABLO ÇÖZÜCÜ) ---
     function formatTextToHTML(text) {
@@ -224,9 +225,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         while (attempts < API_KEYS.length) {
             let activeKey = API_KEYS[currentKeyIndex];
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${activeKey}`;
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`;
             try {
-                const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': activeKey }, body: JSON.stringify(payload) });
                 const data = await response.json();
                 
                 if (data.error) {
@@ -1220,13 +1221,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (userAnswer === correctAnswer) {
             quizScore++; 
-            cardData.isCorrect = true;
+            cardData.isCorrect = true; if(window.__srs) window.__srs(cardData.frontWord,true);
             inputEl.classList.add('quiz-input-correct'); 
             feedbackEl.style.color = "var(--secondary-color)"; 
             feedbackEl.innerText = "Doğru! ✅";
             playAudio(cardData.frontWord, studyLang); 
         } else {
-            cardData.isCorrect = false;
+            cardData.isCorrect = false; if(window.__srs) window.__srs(cardData.frontWord,false);
             inputEl.classList.add('quiz-input-wrong'); 
             feedbackEl.style.color = "#cf6679"; 
             feedbackEl.innerText = "Hatalı! ❌";
