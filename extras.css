@@ -21,3 +21,5 @@ body{padding-top:env(safe-area-inset-top,0)}
 .reading-text{font-size:var(--read-fs,inherit)}
 body.no-anim{animation:none!important}
 @media (prefers-reduced-motion:reduce){body{animation:none!important}*{transition-duration:.01ms!important}}
+.sentence-block.pending-analysis{opacity:.6}
+.sentence-block.pending-analysis .sentence-actions button:disabled{opacity:.45}

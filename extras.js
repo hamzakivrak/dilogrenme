@@ -36,13 +36,6 @@
   const net = () => { off.style.display = navigator.onLine ? 'none' : 'block'; };
   addEventListener('online', net); addEventListener('offline', net); net();
 
-  // ---- GERİ TUŞU: açık modal/çekmeceyi kapatır ----
-  const layers = () => [...document.querySelectorAll('.modal-overlay, #ai-drawer')].filter(m => !m.classList.contains('hidden'));
-  let depth = 0;
-  new MutationObserver(() => { const n = layers().length; if (n > depth) history.pushState({ l: n }, ''); depth = n; })
-    .observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class'] });
-  addEventListener('popstate', () => { const l = layers(); if (l.length) { l[l.length - 1].classList.add('hidden'); depth = layers().length; } });
-
   // ---- SRS (Leitner) ----
   const GAP = [0, 1, 2, 4, 8, 16];
   window.__srs = (w, ok) => {

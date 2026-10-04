@@ -237,7 +237,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 if (data.candidates && data.candidates[0]) {
                     let resultText = data.candidates[0].content.parts[0].text;
-                    if (cacheKey) { aiCache[cacheKey] = resultText; try { localStorage.setItem('dil_ai_cache', JSON.stringify(aiCache)); } catch (e) { aiCache = {}; } }
+                    if (cacheKey) { aiCache[cacheKey] = resultText; try { localStorage.setItem('dil_ai_cache', JSON.stringify(aiCache)); } catch (e) { const ks = Object.keys(aiCache); ks.slice(0, Math.ceil(ks.length * 0.3)).forEach(k => delete aiCache[k]); try { localStorage.setItem('dil_ai_cache', JSON.stringify(aiCache)); } catch (e2) { aiCache = {}; } } }
                     return resultText;
                 }
             } catch (error) { return null; }
@@ -363,46 +363,85 @@ document.addEventListener('DOMContentLoaded', () => {
             block.appendChild(actionsDiv); labContainer.appendChild(block);
         });
 
-        if (!isRestore && API_KEYS.length > 0) { autoAnalyzeFullStory(text); }
+        autoAnalyzeFullStory(text);
     }
 
+    let analysisRun = 0;
+    const hashStr = (s) => { let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0; return (h >>> 0).toString(36); };
+    const normSent = (s) => (s || '').replace(/\s+/g, ' ').trim().toLowerCase();
+    const sleepMs = (ms) => new Promise(r => setTimeout(r, ms));
+
+    // Hikayeyi 4'er cümlelik parçalara bölüp sırayla analiz eder; hazır olan cümlelerin butonları anında açılır
     async function autoAnalyzeFullStory(fullText) {
-        const buttons = document.querySelectorAll('.sentence-actions button');
-        buttons.forEach(b => { b.disabled = true; });
-        
+        const run = ++analysisRun;
+        const sentences = (fullText.match(/[^.!?]+[.!?]+/g) || [fullText]).map(s => s.trim()).filter(Boolean);
+        const blockOf = {};
+        document.querySelectorAll('#text-container .sentence-block').forEach(b => { const t = b.querySelector('.sentence-text'); if (t) blockOf[t.innerText.trim()] = b; });
+        const setBlock = (sent, ready) => {
+            const b = blockOf[sent]; if (!b) return;
+            b.classList.toggle('pending-analysis', !ready);
+            b.querySelectorAll('.sentence-actions button:not(.action-tts)').forEach(x => { x.disabled = !ready; });
+        };
+        sentences.forEach(s => setBlock(s, false));
+
         const statusBadge = document.getElementById('analysis-status');
-        statusBadge.classList.remove('hidden', 'success');
-        statusBadge.innerHTML = '<i class="fa-solid fa-spinner"></i> <span>Yapay Zeka Metni Analiz Ediyor... Lütfen bekleyiniz.</span>';
+        let done = 0, failed = 0;
+        const show = () => {
+            statusBadge.classList.remove('hidden', 'success');
+            statusBadge.innerHTML = `<i class="fa-solid fa-spinner"></i> <span>Analiz hazırlanıyor: ${done}/${sentences.length} cümle hazır</span>`;
+        };
+        show();
 
-        const cacheKey = `full_analysis_${studyLang}_${fullText.substring(0,30)}`;
-        const prompt = `Şu ${studyLang} dilindeki metnin İÇİNDEKİ HER BİR CÜMLEYİ ayrı ayrı analiz et: "${fullText}". 
-        SADECE JSON formatında bir dizi döndür. 
-        DİKKAT: 'grammar' ve 'details' alanlarında metni maddeler halinde çok detaylı organize et. JSON bozulmaması için özelliklere style vb. yazarken SADECE TEK TIRNAK kullan.
-        Format şu şekilde olmalı: 
-        [
-          {
-            "sentence": "Orijinal cümle", "translation": "${nativeLang} çevirisi",
-            "grammar": "ÖĞRETMEN GİBİ ÇOK DETAYLI ANALİZ.",
-            "words": [ {"word": "İsimse ARTIKELİYLE. Fiilse mastar.", "translation": "Türkçesi", "pos": "isim/fiil/edat vs.", "details": "ÇOK DETAYLI.", "example": "Kelimenin geçtiği örnek cümle", "example_tr": "Örnek cümlenin Türkçe çevirisi"} ]
-          }
-        ]`;
+        const chunks = [];
+        for (let i = 0; i < sentences.length; i += 4) chunks.push(sentences.slice(i, i + 4));
 
-        const responseText = await callGemini(cacheKey, prompt, true);
-        
-        if (responseText) {
-            try {
-                const analysisArray = JSON.parse(responseText);
-                analysisArray.forEach(item => { currentStoryAnalysisData[item.sentence.trim()] = item; });
-                
-                statusBadge.classList.add('success');
-                statusBadge.innerHTML = '<i class="fa-solid fa-check"></i> <span>Analiz Tamamlandı!</span>';
-                setTimeout(() => statusBadge.classList.add('hidden'), 3000);
-            } catch (e) { statusBadge.classList.add('hidden'); }
-        } else { statusBadge.classList.add('hidden'); }
+        for (let ci = 0; ci < chunks.length; ci++) {
+            if (run !== analysisRun) return;
+            const chunk = chunks[ci];
+            const cacheKey = `chunk_${studyLang}_${hashStr(chunk.join('|'))}`;
+            const cached = !!aiCache[cacheKey];
 
-        buttons.forEach(b => { b.disabled = false; });
+            if (!cached && API_KEYS.length === 0) { chunk.forEach(s => setBlock(s, true)); failed += chunk.length; continue; }
+
+            const prompt = `Şu ${studyLang} dilindeki cümleleri SIRASIYLA ve her birini ayrı ayrı analiz et: ${JSON.stringify(chunk)}. 
+            SADECE JSON formatında, verdiğim cümle sayısı kadar elemanlı bir dizi döndür. 
+            DİKKAT: 'grammar' ve 'details' alanlarında metni maddeler halinde çok detaylı organize et. JSON bozulmaması için özelliklere style vb. yazarken SADECE TEK TIRNAK kullan.
+            Format şu şekilde olmalı: 
+            [
+              {
+                "sentence": "Orijinal cümle (aynen)", "translation": "${nativeLang} çevirisi",
+                "grammar": "ÖĞRETMEN GİBİ ÇOK DETAYLI ANALİZ.",
+                "words": [ {"word": "İsimse ARTIKELİYLE. Fiilse mastar.", "translation": "Türkçesi", "pos": "isim/fiil/edat vs.", "details": "ÇOK DETAYLI.", "example": "Kelimenin geçtiği örnek cümle", "example_tr": "Örnek cümlenin Türkçe çevirisi"} ]
+              }
+            ]`;
+
+            let arr = null;
+            for (let t = 0; t < 2 && !arr; t++) {
+                if (t > 0) await sleepMs(2000);
+                if (run !== analysisRun) return;
+                const resp = await callGemini(cacheKey, prompt, true);
+                if (run !== analysisRun) return;
+                try { const p = JSON.parse(resp); if (Array.isArray(p) && p.length) arr = p; } catch (e) { }
+                if (!arr) delete aiCache[cacheKey];
+            }
+
+            chunk.forEach((s, i) => {
+                let item = null;
+                if (arr) item = arr.find(x => x && normSent(x.sentence) === normSent(s)) || (arr.length === chunk.length ? arr[i] : null);
+                if (item) { currentStoryAnalysisData[s] = item; done++; } else { failed++; }
+                setBlock(s, true);
+            });
+            show();
+            if (!cached && ci < chunks.length - 1) await sleepMs(1200);
+        }
+
+        if (run !== analysisRun) return;
+        statusBadge.classList.add('success');
+        statusBadge.innerHTML = failed > 0
+            ? `<i class="fa-solid fa-check"></i> <span>Analiz bitti (${failed} cümle butona basınca hazırlanır)</span>`
+            : '<i class="fa-solid fa-check"></i> <span>Analiz Tamamlandı!</span>';
+        setTimeout(() => statusBadge.classList.add('hidden'), 3000);
     }
-
     const savedLabText = sessionStorage.getItem('activeLabText');
     if (savedLabText) prepareLabText(savedLabText, true); 
 
